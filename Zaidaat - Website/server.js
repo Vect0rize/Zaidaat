@@ -1,45 +1,32 @@
-import { execFileSync, spawn } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const safeReal = (p) => {
-  try {
-    return fs.realpathSync(p);
-  } catch {
-    return path.resolve(p);
-  }
-};
-const isDirectEntry = Boolean(process.argv[1]) && safeReal(process.argv[1]) === safeReal(__filename);
 
-// On Node 22.5 - 22.12, `node:sqlite` requires --experimental-sqlite.
-async function ensureSqliteSupport() {
+// Ensure relative paths (data/, uploads/, client/dist/) resolve inside app root under lsnode/Passenger.
+if (process.cwd() !== __dirname) {
   try {
-    await import('node:sqlite');
-    return true;
+    process.chdir(__dirname);
   } catch (err) {
-    if (
-      isDirectEntry &&
-      !process.execArgv.includes('--experimental-sqlite') &&
-      !process.env.ZAIDAAT_SQLITE_RETRY
-    ) {
-      console.log('[zaidaat] Enabling --experimental-sqlite for Node 22 compatibility...');
-      const child = spawn(process.execPath, ['--experimental-sqlite', __filename, ...process.argv.slice(2)], {
-        stdio: 'inherit',
-        env: { ...process.env, ZAIDAAT_SQLITE_RETRY: '1' },
-      });
-      child.on('exit', (code, signal) => {
-        if (signal) process.kill(process.pid, signal);
-        process.exit(code ?? 0);
-      });
-      return false;
-    }
-    throw new Error(
-      `Node.js sqlite module is unavailable (${err?.message || err}). Please use Node 22.13+ or Node 24+.`
-    );
+    console.error('[zaidaat] Failed to chdir to app root:', err);
   }
+}
+
+process.on('uncaughtException', (err) => {
+  console.error('[zaidaat] Uncaught Exception:', err);
+});
+process.on('unhandledRejection', (reason) => {
+  console.error('[zaidaat] Unhandled Rejection:', reason);
+});
+
+if (!process.env.SERVE_CLIENT) {
+  process.env.SERVE_CLIENT = 'true';
+}
+if (!process.env.TRUST_PROXY) {
+  process.env.TRUST_PROXY = 'true';
 }
 
 function ensureBuiltBundles() {
@@ -65,23 +52,19 @@ function ensureBuiltBundles() {
   });
 }
 
-if (!process.env.SERVE_CLIENT) {
-  process.env.SERVE_CLIENT = 'true';
-}
-if (!process.env.TRUST_PROXY) {
-  process.env.TRUST_PROXY = 'true';
-}
-
-let exportedApp = null;
-const ready = await ensureSqliteSupport();
-if (ready) {
+async function boot() {
+  await import('node:sqlite');
   ensureBuiltBundles();
-  const { createApp, startServer } = await import('./dist/server/index.js');
-  if (isDirectEntry) {
+  const { startServer } = await import('./dist/server/index.js');
+  if (process.env.ZAIDAAT_NO_LISTEN !== '1') {
     startServer();
-  } else {
-    exportedApp = createApp();
   }
 }
 
-export default exportedApp;
+// Avoid top-level await so Node 22 require(esm) and Hostinger lsnode load cleanly.
+if (process.env.ZAIDAAT_NO_LISTEN !== '1') {
+  boot().catch((err) => {
+    console.error('[zaidaat] Fatal startup failure:', err);
+    process.exit(1);
+  });
+}

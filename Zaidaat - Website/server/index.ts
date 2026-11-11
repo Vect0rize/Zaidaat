@@ -153,16 +153,28 @@ export function createApp() {
 export function startServer() {
   const app = createApp();
   const singleProcessMode = config.isProd || process.env.SERVE_CLIENT === 'true';
-  const listenPort = singleProcessMode
-    ? Number(process.env.PORT || config.clientPort || 3000)
-    : config.port;
-  const listenHost = process.env.HOST || (singleProcessMode ? '0.0.0.0' : '127.0.0.1');
+  const rawEnvPort = process.env.PORT;
+  const listenTarget: string | number = rawEnvPort
+    ? /^\d+$/.test(rawEnvPort)
+      ? Number(rawEnvPort)
+      : rawEnvPort
+    : singleProcessMode
+      ? config.clientPort || 3000
+      : config.port;
 
-  const server = app.listen(listenPort, listenHost, () => {
-    console.log(`[ZAIDAAT API] Listening on http://${listenHost}:${listenPort} (${config.nodeEnv})`);
-  });
+  const explicitHost = process.env.HOST || (!singleProcessMode ? '127.0.0.1' : undefined);
+  const onListening = () => {
+    const label = typeof listenTarget === 'number' ? `port ${listenTarget}` : `socket ${listenTarget}`;
+    console.log(`[ZAIDAAT API] Listening on ${explicitHost ? `${explicitHost} ` : ''}${label} (${config.nodeEnv})`);
+  };
+
+  // On managed hosts (Hostinger lsnode/Passenger), omit host binding so the proxy socket hook succeeds.
+  const server = explicitHost
+    ? app.listen(listenTarget as number, explicitHost, onListening)
+    : app.listen(listenTarget as any, onListening);
 
   const shutdown = () => {
+    server.closeAllConnections?.();
     server.close(() => {
       closeDb();
       process.exit(0);
