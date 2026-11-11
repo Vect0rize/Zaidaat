@@ -31,23 +31,10 @@ export function createApp() {
 
   const app = express();
 
-  app.use(
-    helmet({
-      crossOriginResourcePolicy: { policy: 'cross-origin' },
-      contentSecurityPolicy: false,
-    })
-  );
-  app.use(
-    cors({
-      origin: [config.appUrl, 'http://localhost:3000', 'http://127.0.0.1:3000'],
-      credentials: true,
-    })
-  );
-  app.use(cookieParser());
-  app.use(express.json({ limit: '2mb' }));
-  app.use(express.urlencoded({ extended: true }));
+  if (config.isProd || process.env.TRUST_PROXY === 'true') {
+    app.set('trust proxy', 1);
+  }
 
-  // CSRF origin/fetch-metadata protection on state-changing API requests
   const allowedOrigins = new Set([
     config.appUrl,
     'http://localhost:3000',
@@ -55,11 +42,44 @@ export function createApp() {
     'http://localhost:4000',
     'http://127.0.0.1:4000',
   ]);
+
+  const isAllowedOrigin = (origin: string | undefined, req: express.Request): boolean => {
+    if (!origin) return true;
+    if (allowedOrigins.has(origin)) return true;
+    try {
+      const originHost = new URL(origin).host.toLowerCase();
+      const rawHost = String(req.headers['x-forwarded-host'] || req.headers.host || '')
+        .split(',')[0]
+        .trim()
+        .toLowerCase();
+      return Boolean(rawHost && originHost === rawHost);
+    } catch {
+      return false;
+    }
+  };
+
+  app.use(
+    helmet({
+      crossOriginResourcePolicy: { policy: 'cross-origin' },
+      contentSecurityPolicy: false,
+    })
+  );
+  app.use((req, res, next) =>
+    cors({
+      origin: (origin, callback) => callback(null, isAllowedOrigin(origin, req)),
+      credentials: true,
+    })(req, res, next)
+  );
+  app.use(cookieParser());
+  app.use(express.json({ limit: '2mb' }));
+  app.use(express.urlencoded({ extended: true }));
+
+  // CSRF origin/fetch-metadata protection on state-changing API requests
   app.use('/api', (req, res, next) => {
     if (req.method === 'POST' || req.method === 'PUT' || req.method === 'PATCH' || req.method === 'DELETE') {
       const origin = req.headers.origin;
       const fetchSite = req.headers['sec-fetch-site'];
-      if (origin && !allowedOrigins.has(origin)) {
+      if (origin && !isAllowedOrigin(origin, req)) {
         res.status(403).json({ error: 'Cross-origin request blocked by CSRF policy' });
         return;
       }
@@ -116,9 +136,10 @@ export function createApp() {
     res.status(404).json({ error: 'API route not found' });
   });
 
-  // In production build, serve built client static files from client/dist
+  // In production or single-server mode, serve built client static files from client/dist
   const clientDistDir = path.resolve(process.cwd(), 'client', 'dist');
-  if (config.isProd && fs.existsSync(clientDistDir)) {
+  const shouldServeClient = config.isProd || process.env.SERVE_CLIENT === 'true';
+  if (shouldServeClient && fs.existsSync(clientDistDir)) {
     app.use(express.static(clientDistDir));
     app.get('*', (_req, res) => {
       res.sendFile(path.join(clientDistDir, 'index.html'));
@@ -129,16 +150,16 @@ export function createApp() {
   return app;
 }
 
-const isEntry =
-  Boolean(process.argv[1]) &&
-  (path.resolve(process.argv[1]).toLowerCase().endsWith(path.join('server', 'index.ts').toLowerCase()) ||
-    path.resolve(process.argv[1]).toLowerCase().endsWith(path.join('server', 'index.js').toLowerCase()));
-
-if (isEntry) {
+export function startServer() {
   const app = createApp();
-  const listenPort = config.isProd ? config.clientPort : config.port;
-  const server = app.listen(listenPort, '127.0.0.1', () => {
-    console.log(`[ZAIDAAT API] Listening on http://127.0.0.1:${listenPort} (${config.nodeEnv})`);
+  const singleProcessMode = config.isProd || process.env.SERVE_CLIENT === 'true';
+  const listenPort = singleProcessMode
+    ? Number(process.env.PORT || config.clientPort || 3000)
+    : config.port;
+  const listenHost = process.env.HOST || (singleProcessMode ? '0.0.0.0' : '127.0.0.1');
+
+  const server = app.listen(listenPort, listenHost, () => {
+    console.log(`[ZAIDAAT API] Listening on http://${listenHost}:${listenPort} (${config.nodeEnv})`);
   });
 
   const shutdown = () => {
@@ -149,4 +170,22 @@ if (isEntry) {
   };
   process.on('SIGINT', shutdown);
   process.on('SIGTERM', shutdown);
+  return server;
+}
+
+const resolveReal = (p: string) => {
+  try {
+    return fs.realpathSync(p);
+  } catch {
+    return path.resolve(p);
+  }
+};
+
+const isEntry =
+  Boolean(process.argv[1]) &&
+  (resolveReal(process.argv[1]).toLowerCase().endsWith(path.join('server', 'index.ts').toLowerCase()) ||
+    resolveReal(process.argv[1]).toLowerCase().endsWith(path.join('server', 'index.js').toLowerCase()));
+
+if (isEntry) {
+  startServer();
 }
