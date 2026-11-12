@@ -97,7 +97,7 @@ export const propertyCreateSchema = z.object({
   locality: z.string().trim().min(2).max(120),
   addressLine: z.string().trim().max(240).optional().nullable(),
   pincode: z.string().trim().max(12).optional().nullable(),
-  amenities: z.array(z.string().trim().max(60)).max(30).optional().default([]),
+  amenities: z.array(z.string().trim().max(60)).max(50).optional().default([]),
   description: z.string().trim().min(20).max(4000),
   reraId: z.string().trim().max(80).optional().nullable(),
   videoUrl: optionalSafeMediaUrlSchema,

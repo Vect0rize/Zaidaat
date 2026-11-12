@@ -14,23 +14,30 @@ type AreaUnit =
   | 'sqm'
   | 'acre'
   | 'hectare'
+  | 'are'
+  | 'nali'
+  | 'mutthi'
+  | 'bisi'
   | 'cent'
   | 'guntha'
-  | 'are'
   | 'ground'
   | 'marla'
   | 'kanal'
+  | 'sarsahi'
   | 'killa'
   | 'murabba'
   | 'biswa'
   | 'biswansi'
   | 'bigha'
+  | 'kachha_bigha'
+  | 'vigha_guj'
   | 'katha'
   | 'decimal'
   | 'chatak'
   | 'ankanam'
   | 'lecha'
-  | 'kranta';
+  | 'kranta'
+  | 'kani';
 
 const AREA_UNITS: Record<AreaUnit, { label: string; toSqft: number }> = {
   sqft: { label: 'sq.ft', toSqft: 1 },
@@ -38,51 +45,93 @@ const AREA_UNITS: Record<AreaUnit, { label: string; toSqft: number }> = {
   sqm: { label: 'sq.m', toSqft: 10.7639104 },
   acre: { label: 'Acres', toSqft: 43560 },
   hectare: { label: 'Hectares', toSqft: 107639.104 },
+  are: { label: 'Are (R)', toSqft: 1076.39104 },
+  nali: { label: 'Nali (Uttarakhand)', toSqft: 2160 },
+  mutthi: { label: 'Mutthi (Uttarakhand)', toSqft: 135 },
+  bisi: { label: 'Bisi', toSqft: 43200 },
   cent: { label: 'Cents', toSqft: 435.6 },
   guntha: { label: 'Guntha / Gunta', toSqft: 1089 },
-  are: { label: 'Are (R)', toSqft: 1076.39104 },
   ground: { label: 'Ground', toSqft: 2400 },
   marla: { label: 'Marla', toSqft: 272.25 },
   kanal: { label: 'Kanal', toSqft: 5445 },
+  sarsahi: { label: 'Sarsahi', toSqft: 30.25 },
   killa: { label: 'Killa / Ghumaon', toSqft: 43560 },
   murabba: { label: 'Murabba', toSqft: 1089000 },
-  biswa: { label: 'Biswa', toSqft: 1361.25 },
+  biswa: { label: 'Biswa (Pucca)', toSqft: 1361.25 },
   biswansi: { label: 'Biswansi', toSqft: 68.0625 },
   bigha: { label: 'Bigha (Pucca)', toSqft: 27225 },
+  kachha_bigha: { label: 'Bigha (Kachha)', toSqft: 9075 },
+  vigha_guj: { label: 'Vigha (Gujarat)', toSqft: 17424 },
   katha: { label: 'Katha', toSqft: 1361.25 },
   decimal: { label: 'Decimal / Dismil', toSqft: 435.6 },
   chatak: { label: 'Chatak', toSqft: 45 },
   ankanam: { label: 'Ankanam', toSqft: 72 },
   lecha: { label: 'Lecha', toSqft: 144 },
   kranta: { label: 'Dhur / Kranta', toSqft: 68.0625 },
+  kani: { label: 'Kani', toSqft: 17280 },
 };
 
 const AMENITY_OPTIONS = [
   'Covered Parking',
+  'Visitor Parking',
   '24x7 Security',
+  'CCTV',
+  'Gated Community',
   'Lift',
   'Power Backup',
+  '24x7 Water Supply',
+  'Piped Gas',
+  'Modular Kitchen',
+  'Air Conditioning',
+  'Wardrobes',
+  'Swimming Pool',
   'Gymnasium',
   'Clubhouse',
-  'Modular Kitchen',
-  'Solar Water Heater',
+  'Children Play Area',
+  'Park / Garden',
   'Park Facing',
-  'CCTV',
+  'Jogging Track',
+  'Intercom Facility',
+  'Fire Safety',
   'Rainwater Harvesting',
+  'Solar Water Heater',
+  'Vastu Compliant',
+  'Wi-Fi / Fiber Ready',
+  'Servant Room',
+  'Store Room',
+  'Balcony / Terrace',
+  'Wheelchair Friendly',
   'EV Charging',
+  'Mountain / Valley View',
+  'Main Road Facing',
 ];
 
 const PLOT_AMENITY_OPTIONS = [
   'Boundary Wall',
+  'Fencing',
   'Corner Plot',
   'Gated Community',
-  'Paved Road Access',
+  'Paved / Blacktop Road',
+  'Wide Road Access',
+  'Highway Facing',
+  'Main Road Facing',
+  'Freehold / Clear Title',
+  'RERA Approved',
+  'Dakhil Kharij / Mutation',
   'Water Connection',
+  'Borewell / Natural Spring',
   'Electricity Supply',
+  'Street Lights',
+  'Drainage / Sewerage',
   '24x7 Security',
-  'Park Facing',
-  'Rainwater Harvesting',
   'CCTV',
+  'Park Facing',
+  'Mountain / Valley View',
+  'River / Forest View',
+  'Rainwater Harvesting',
+  'Fruit Trees / Plantation',
+  'Flat / Terraced Land',
+  'Vastu Compliant',
 ];
 
 export function SellPropertyPage() {
