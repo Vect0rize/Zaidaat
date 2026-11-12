@@ -142,7 +142,13 @@ export function PropertyCard({ property, onToggleSave }: PropertyCardProps) {
               {property.bathrooms > 0 ? `${property.bathrooms} Bath · ` : ''}
               {property.areaSqft.toLocaleString('en-IN')} sq.ft
             </span>
-            <span className="text-[11px] text-slate-500">{formatLabel(property.furnishing)}</span>
+            <span className="text-[11px] text-slate-500">
+              {property.propertyType === 'plot' || property.propertyType === 'land'
+                ? property.facing
+                  ? `${property.facing} Facing`
+                  : 'Plot / Land'
+                : formatLabel(property.furnishing)}
+            </span>
           </div>
         </div>
       </div>

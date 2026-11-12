@@ -18,6 +18,24 @@ export function formatPropertyPrice(price: number, purpose: 'buy' | 'rent'): str
   return formatINR(price, true);
 }
 
+export function formatINRWords(amount: number | string | null | undefined): string {
+  const val = Number(amount);
+  if (!Number.isFinite(val) || val <= 0) return '';
+  if (val >= 10000000) {
+    const cr = Number((val / 10000000).toFixed(2));
+    return `${cr} Crore`;
+  }
+  if (val >= 100000) {
+    const l = Number((val / 100000).toFixed(2));
+    return `${l} Lakh`;
+  }
+  if (val >= 1000) {
+    const k = Number((val / 1000).toFixed(2));
+    return `${k} Thousand`;
+  }
+  return val.toLocaleString('en-IN');
+}
+
 export function formatLabel(slug: string | null | undefined): string {
   if (!slug) return '';
   return slug

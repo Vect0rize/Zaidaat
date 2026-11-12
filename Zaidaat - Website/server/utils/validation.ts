@@ -82,7 +82,7 @@ export const propertyCreateSchema = z.object({
   price: z.coerce.number().int().min(1000).max(10000000000),
   securityDeposit: z.coerce.number().int().min(0).max(500000000).optional().default(0),
   maintenanceMonthly: z.coerce.number().int().min(0).max(1000000).optional().default(0),
-  areaSqft: z.coerce.number().int().min(50).max(5000000),
+  areaSqft: z.coerce.number().int().min(50).max(50000000),
   bedrooms: z.coerce.number().int().min(0).max(25).optional().default(0),
   bathrooms: z.coerce.number().int().min(0).max(25).optional().default(0),
   balconies: z.coerce.number().int().min(0).max(20).optional().default(0),

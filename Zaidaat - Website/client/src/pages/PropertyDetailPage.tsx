@@ -321,16 +321,20 @@ export function PropertyDetailPage() {
 
             <div className="mt-6 grid grid-cols-2 gap-3 rounded-xl border border-slate-200 bg-slate-50/70 p-4 sm:grid-cols-4">
               <div>
-                <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Super Area</span>
+                <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                  {property.propertyType === 'plot' || property.propertyType === 'land' ? 'Plot Area' : 'Super Area'}
+                </span>
                 <p className="mt-1 flex items-center gap-1.5 text-sm font-bold text-slate-900 tabular-price">
                   <Maximize2 className="h-4 w-4 text-brand-600" />
                   {property.areaSqft.toLocaleString('en-IN')} sq.ft
                 </p>
               </div>
               <div>
-                <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Configuration</span>
+                <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                  {property.propertyType === 'plot' || property.propertyType === 'land' ? 'Property Type' : 'Configuration'}
+                </span>
                 <p className="mt-1 flex items-center gap-1.5 text-sm font-bold text-slate-900">
-                  {property.bedrooms > 0 ? (
+                  {property.bedrooms > 0 && property.propertyType !== 'plot' && property.propertyType !== 'land' ? (
                     <>
                       <BedDouble className="h-4 w-4 text-brand-600" />
                       {property.bedrooms} BHK &middot; <Bath className="h-3.5 w-3.5 text-slate-400" /> {property.bathrooms}
@@ -341,8 +345,14 @@ export function PropertyDetailPage() {
                 </p>
               </div>
               <div>
-                <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Furnishing</span>
-                <p className="mt-1 text-sm font-bold text-slate-900">{formatLabel(property.furnishing)}</p>
+                <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                  {property.propertyType === 'plot' || property.propertyType === 'land' ? 'Facing' : 'Furnishing'}
+                </span>
+                <p className="mt-1 text-sm font-bold text-slate-900">
+                  {property.propertyType === 'plot' || property.propertyType === 'land'
+                    ? property.facing || 'Not specified'
+                    : formatLabel(property.furnishing)}
+                </p>
               </div>
               <div>
                 <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Possession</span>
@@ -365,17 +375,19 @@ export function PropertyDetailPage() {
                   <p className="font-semibold text-slate-800">{property.facing || 'Not specified'}</p>
                 </div>
               </div>
-              <div className="flex items-start gap-2.5">
-                <Layers className="mt-0.5 h-4 w-4 text-slate-400" />
-                <div>
-                  <span className="text-xs text-slate-400">Floor Level</span>
-                  <p className="font-semibold text-slate-800">
-                    {property.floorNumber !== null
-                      ? `${property.floorNumber} of ${property.totalFloors || property.floorNumber}`
-                      : 'Ground / Independent'}
-                  </p>
+              {property.propertyType !== 'plot' && property.propertyType !== 'land' && (
+                <div className="flex items-start gap-2.5">
+                  <Layers className="mt-0.5 h-4 w-4 text-slate-400" />
+                  <div>
+                    <span className="text-xs text-slate-400">Floor Level</span>
+                    <p className="font-semibold text-slate-800">
+                      {property.floorNumber !== null
+                        ? `${property.floorNumber} of ${property.totalFloors || property.floorNumber}`
+                        : 'Ground / Independent'}
+                    </p>
+                  </div>
                 </div>
-              </div>
+              )}
               <div className="flex items-start gap-2.5">
                 <ShieldCheck className="mt-0.5 h-4 w-4 text-emerald-600" />
                 <div>

@@ -5,7 +5,18 @@ import { api, uploadFiles } from '../lib/api';
 import { useAuth } from '../lib/authContext';
 import { useToast } from '../lib/toastContext';
 import type { Property } from '../types';
+import { formatINRWords } from '../lib/format';
 import { LocationSelector } from '../components/common/LocationSelector';
+
+type AreaUnit = 'sqft' | 'sqyd' | 'sqm' | 'acre' | 'cent';
+
+const AREA_UNITS: Record<AreaUnit, { label: string; toSqft: number }> = {
+  sqft: { label: 'sq.ft', toSqft: 1 },
+  sqyd: { label: 'sq.yd (Gaj)', toSqft: 9 },
+  sqm: { label: 'sq.m', toSqft: 10.7639104 },
+  acre: { label: 'Acres', toSqft: 43560 },
+  cent: { label: 'Cents', toSqft: 435.6 },
+};
 
 const AMENITY_OPTIONS = [
   'Covered Parking',
@@ -20,6 +31,19 @@ const AMENITY_OPTIONS = [
   'CCTV',
   'Rainwater Harvesting',
   'EV Charging',
+];
+
+const PLOT_AMENITY_OPTIONS = [
+  'Boundary Wall',
+  'Corner Plot',
+  'Gated Community',
+  'Paved Road Access',
+  'Water Connection',
+  'Electricity Supply',
+  '24x7 Security',
+  'Park Facing',
+  'Rainwater Harvesting',
+  'CCTV',
 ];
 
 export function SellPropertyPage() {
@@ -37,6 +61,7 @@ export function SellPropertyPage() {
   const [securityDeposit, setSecurityDeposit] = useState('0');
   const [maintenanceMonthly, setMaintenanceMonthly] = useState('0');
   const [areaSqft, setAreaSqft] = useState('');
+  const [areaUnit, setAreaUnit] = useState<AreaUnit>('sqft');
   const [bedrooms, setBedrooms] = useState('2');
   const [bathrooms, setBathrooms] = useState('2');
   const [balconies, setBalconies] = useState('1');
@@ -123,27 +148,52 @@ export function SellPropertyPage() {
     setAmenities((prev) => (prev.includes(am) ? prev.filter((x) => x !== am) : [...prev, am]));
   };
 
+  const isPlotOrLand = propertyType === 'plot' || propertyType === 'land';
+  const priceWords = formatINRWords(price);
+  const computedAreaSqft = Math.round(Number(areaSqft || 0) * AREA_UNITS[areaUnit].toSqft);
+
+  const handlePropertyTypeChange = (nextType: string) => {
+    setPropertyType(nextType);
+    if (nextType === 'plot' || nextType === 'land') {
+      setBedrooms('0');
+      setBathrooms('0');
+      setBalconies('0');
+      setFurnishing('unfurnished');
+      setFloorNumber('');
+      setTotalFloors('');
+      setAmenities((prev) => prev.filter((am) => PLOT_AMENITY_OPTIONS.includes(am)));
+    } else if (bedrooms === '0' && bathrooms === '0') {
+      setBedrooms('2');
+      setBathrooms('2');
+      setBalconies('1');
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
     setError('');
     try {
+      const convertedAreaSqft = Math.round(Number(areaSqft || 0) * AREA_UNITS[areaUnit].toSqft);
+      if (!Number.isFinite(convertedAreaSqft) || convertedAreaSqft < 50) {
+        throw new Error('Converted property area must be at least 50 sq.ft.');
+      }
       const payload = {
         title,
         listingPurpose,
         propertyCategory,
         propertyType,
         price: Number(price),
-        securityDeposit: Number(securityDeposit || 0),
-        maintenanceMonthly: Number(maintenanceMonthly || 0),
-        areaSqft: Number(areaSqft),
-        bedrooms: Number(bedrooms || 0),
-        bathrooms: Number(bathrooms || 0),
-        balconies: Number(balconies || 0),
-        furnishing,
+        securityDeposit: listingPurpose === 'rent' ? Number(securityDeposit || 0) : 0,
+        maintenanceMonthly: listingPurpose === 'rent' ? Number(maintenanceMonthly || 0) : 0,
+        areaSqft: convertedAreaSqft,
+        bedrooms: isPlotOrLand ? 0 : Number(bedrooms || 0),
+        bathrooms: isPlotOrLand ? 0 : Number(bathrooms || 0),
+        balconies: isPlotOrLand ? 0 : Number(balconies || 0),
+        furnishing: isPlotOrLand ? 'unfurnished' : furnishing,
         facing,
-        floorNumber: floorNumber ? Number(floorNumber) : null,
-        totalFloors: totalFloors ? Number(totalFloors) : null,
+        floorNumber: !isPlotOrLand && floorNumber ? Number(floorNumber) : null,
+        totalFloors: !isPlotOrLand && totalFloors ? Number(totalFloors) : null,
         possessionStatus,
         state: stateVal,
         city: cityVal,
@@ -243,7 +293,7 @@ export function SellPropertyPage() {
             </div>
             <div>
               <label className="mb-1 block text-xs font-semibold text-slate-600">Property Type</label>
-              <select value={propertyType} onChange={(e) => setPropertyType(e.target.value)} className="input-field">
+              <select value={propertyType} onChange={(e) => handlePropertyTypeChange(e.target.value)} className="input-field">
                 <option value="apartment">Apartment / Flat</option>
                 <option value="villa">Villa</option>
                 <option value="independent_house">Independent House</option>
@@ -297,12 +347,12 @@ export function SellPropertyPage() {
           />
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <label className="mb-1 block text-xs font-semibold text-slate-600">Street / Project Name</label>
+              <label className="mb-1 block text-xs font-semibold text-slate-600">Street / Building / Locality Address</label>
               <input
                 type="text"
                 value={addressLine}
                 onChange={(e) => setAddressLine(e.target.value)}
-                placeholder="Building, Phase, or Road Name"
+                placeholder="Building, Road, or Sector Name"
                 className="input-field"
               />
             </div>
@@ -321,98 +371,135 @@ export function SellPropertyPage() {
 
         <div className="card space-y-4 p-6">
           <h2 className="text-lg font-bold text-slate-900">3. Price &amp; Specifications</h2>
-          <div className="grid gap-4 sm:grid-cols-3">
+          <div className={`grid gap-4 ${listingPurpose === 'rent' ? 'sm:grid-cols-2 lg:grid-cols-4' : 'sm:grid-cols-2'}`}>
             <div>
-              <label className="mb-1 block text-xs font-semibold text-slate-600">
-                {listingPurpose === 'rent' ? 'Monthly Rent (₹)' : 'Expected Price (₹)'}
-              </label>
+              <div className="mb-1 flex items-center justify-between gap-2">
+                <label className="text-xs font-semibold text-slate-600">
+                  {listingPurpose === 'rent' ? 'Monthly Rent (₹)' : 'Expected Price (₹)'}
+                </label>
+                {priceWords && (
+                  <span className="rounded-md bg-brand-50 px-2 py-0.5 text-[11px] font-bold text-brand-700">
+                    ₹ {priceWords}
+                  </span>
+                )}
+              </div>
               <input
                 type="number"
                 required
                 min={1000}
                 value={price}
                 onChange={(e) => setPrice(e.target.value)}
-                placeholder={listingPurpose === 'rent' ? '32000' : '8500000'}
-                className="input-field"
-              />
-            </div>
-            <div>
-              <label className="mb-1 block text-xs font-semibold text-slate-600">Built-up / Plot Area (sq.ft)</label>
-              <input
-                type="number"
-                required
-                min={50}
-                value={areaSqft}
-                onChange={(e) => setAreaSqft(e.target.value)}
-                placeholder="1450"
+                placeholder={listingPurpose === 'rent' ? '32000' : '12500000'}
                 className="input-field"
               />
             </div>
             <div>
               <label className="mb-1 block text-xs font-semibold text-slate-600">
-                {listingPurpose === 'rent' ? 'Security Deposit (₹)' : 'Monthly Maintenance (₹)'}
+                {isPlotOrLand ? 'Plot Area' : 'Built-up Area'} ({AREA_UNITS[areaUnit].label})
               </label>
-              {listingPurpose === 'rent' ? (
+              <div className="flex gap-2">
                 <input
                   type="number"
-                  min={0}
-                  value={securityDeposit}
-                  onChange={(e) => setSecurityDeposit(e.target.value)}
-                  className="input-field"
+                  required
+                  step="any"
+                  min={isPlotOrLand && areaUnit !== 'sqft' ? 0.01 : 50}
+                  value={areaSqft}
+                  onChange={(e) => setAreaSqft(e.target.value)}
+                  placeholder={isPlotOrLand ? '200' : '1450'}
+                  className="input-field min-w-0 flex-1"
                 />
-              ) : (
-                <input
-                  type="number"
-                  min={0}
-                  value={maintenanceMonthly}
-                  onChange={(e) => setMaintenanceMonthly(e.target.value)}
-                  className="input-field"
-                />
+                <select
+                  value={areaUnit}
+                  onChange={(e) => setAreaUnit(e.target.value as AreaUnit)}
+                  aria-label="Area unit"
+                  className="input-field w-32 shrink-0"
+                >
+                  {(Object.keys(AREA_UNITS) as AreaUnit[]).map((u) => (
+                    <option key={u} value={u}>
+                      {AREA_UNITS[u].label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {areaUnit !== 'sqft' && computedAreaSqft > 0 && (
+                <p className="mt-1 text-[11px] font-medium text-slate-500">
+                  = {computedAreaSqft.toLocaleString('en-IN')} sq.ft
+                </p>
               )}
             </div>
+            {listingPurpose === 'rent' && (
+              <>
+                <div>
+                  <label className="mb-1 block text-xs font-semibold text-slate-600">Security Deposit (₹)</label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={securityDeposit}
+                    onChange={(e) => setSecurityDeposit(e.target.value)}
+                    className="input-field"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-semibold text-slate-600">Monthly Maintenance (₹)</label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={maintenanceMonthly}
+                    onChange={(e) => setMaintenanceMonthly(e.target.value)}
+                    className="input-field"
+                  />
+                </div>
+              </>
+            )}
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-4">
-            <div>
-              <label className="mb-1 block text-xs font-semibold text-slate-600">Bedrooms (BHK)</label>
-              <input type="number" min={0} max={25} value={bedrooms} onChange={(e) => setBedrooms(e.target.value)} className="input-field" />
+          {!isPlotOrLand && (
+            <div className="grid gap-4 sm:grid-cols-4">
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-slate-600">Bedrooms (BHK)</label>
+                <input type="number" min={0} max={25} value={bedrooms} onChange={(e) => setBedrooms(e.target.value)} className="input-field" />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-slate-600">Bathrooms</label>
+                <input type="number" min={0} max={25} value={bathrooms} onChange={(e) => setBathrooms(e.target.value)} className="input-field" />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-slate-600">Balconies</label>
+                <input type="number" min={0} max={20} value={balconies} onChange={(e) => setBalconies(e.target.value)} className="input-field" />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-slate-600">Furnishing</label>
+                <select value={furnishing} onChange={(e) => setFurnishing(e.target.value as any)} className="input-field">
+                  <option value="unfurnished">Unfurnished</option>
+                  <option value="semi_furnished">Semi Furnished</option>
+                  <option value="fully_furnished">Fully Furnished</option>
+                </select>
+              </div>
             </div>
-            <div>
-              <label className="mb-1 block text-xs font-semibold text-slate-600">Bathrooms</label>
-              <input type="number" min={0} max={25} value={bathrooms} onChange={(e) => setBathrooms(e.target.value)} className="input-field" />
-            </div>
-            <div>
-              <label className="mb-1 block text-xs font-semibold text-slate-600">Balconies</label>
-              <input type="number" min={0} max={20} value={balconies} onChange={(e) => setBalconies(e.target.value)} className="input-field" />
-            </div>
-            <div>
-              <label className="mb-1 block text-xs font-semibold text-slate-600">Furnishing</label>
-              <select value={furnishing} onChange={(e) => setFurnishing(e.target.value as any)} className="input-field">
-                <option value="unfurnished">Unfurnished</option>
-                <option value="semi_furnished">Semi Furnished</option>
-                <option value="fully_furnished">Fully Furnished</option>
-              </select>
-            </div>
-          </div>
+          )}
 
-          <div className="grid gap-4 sm:grid-cols-4">
+          <div className={`grid gap-4 ${isPlotOrLand ? 'sm:grid-cols-2' : 'sm:grid-cols-4'}`}>
             <div>
               <label className="mb-1 block text-xs font-semibold text-slate-600">Facing</label>
               <input type="text" value={facing} onChange={(e) => setFacing(e.target.value)} placeholder="East / North-East" className="input-field" />
             </div>
-            <div>
-              <label className="mb-1 block text-xs font-semibold text-slate-600">Floor No.</label>
-              <input type="number" min={0} value={floorNumber} onChange={(e) => setFloorNumber(e.target.value)} className="input-field" />
-            </div>
-            <div>
-              <label className="mb-1 block text-xs font-semibold text-slate-600">Total Floors</label>
-              <input type="number" min={0} value={totalFloors} onChange={(e) => setTotalFloors(e.target.value)} className="input-field" />
-            </div>
+            {!isPlotOrLand && (
+              <>
+                <div>
+                  <label className="mb-1 block text-xs font-semibold text-slate-600">Floor No.</label>
+                  <input type="number" min={0} value={floorNumber} onChange={(e) => setFloorNumber(e.target.value)} className="input-field" />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-semibold text-slate-600">Total Floors</label>
+                  <input type="number" min={0} value={totalFloors} onChange={(e) => setTotalFloors(e.target.value)} className="input-field" />
+                </div>
+              </>
+            )}
             <div>
               <label className="mb-1 block text-xs font-semibold text-slate-600">Possession</label>
               <select value={possessionStatus} onChange={(e) => setPossessionStatus(e.target.value as any)} className="input-field">
-                <option value="ready_to_move">Ready to Move</option>
-                <option value="under_construction">Under Construction</option>
+                <option value="ready_to_move">{isPlotOrLand ? 'Immediate / Clear Title' : 'Ready to Move'}</option>
+                <option value="under_construction">{isPlotOrLand ? 'Under Development' : 'Under Construction'}</option>
               </select>
             </div>
           </div>
@@ -442,9 +529,11 @@ export function SellPropertyPage() {
           </div>
 
           <div>
-            <label className="mb-2 block text-xs font-semibold text-slate-600">Amenities</label>
+            <label className="mb-2 block text-xs font-semibold text-slate-600">
+              {isPlotOrLand ? 'Plot / Land Features' : 'Amenities'}
+            </label>
             <div className="flex flex-wrap gap-2">
-              {AMENITY_OPTIONS.map((am) => {
+              {(isPlotOrLand ? PLOT_AMENITY_OPTIONS : AMENITY_OPTIONS).map((am) => {
                 const active = amenities.includes(am);
                 return (
                   <button
