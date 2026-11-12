@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { getDb, withTransaction } from '../db/connection.js';
 import { optionalAuth, requireAuth } from '../middleware/auth.js';
 import { createNotification } from '../utils/notifications.js';
-import { cleanOptionalText, cleanText, safeJsonParse } from '../utils/sanitize.js';
+import { cleanOptionalText, cleanText, parsePagination, parsePositiveInt, safeJsonParse } from '../utils/sanitize.js';
 import {
   hiringRequestSchema,
   jobApplySchema,
@@ -46,13 +46,12 @@ function formatJobRow(row: any, savedSet?: Set<number>) {
 workRouter.get('/jobs', optionalAuth, (req, res) => {
   const db = getDb();
   const q = cleanText(String(req.query.q || ''), 120);
-  const categoryId = Number(req.query.categoryId || 0);
+  const categoryId = parsePositiveInt(req.query.categoryId) || 0;
   const categorySlug = cleanText(String(req.query.category || ''), 80);
   const state = cleanText(String(req.query.state || ''), 80);
   const city = cleanText(String(req.query.city || ''), 80);
   const status = String(req.query.status || 'open');
-  const limit = Math.min(Number(req.query.limit || 24), 60);
-  const offset = Math.max(Number(req.query.offset || 0), 0);
+  const { limit, offset } = parsePagination(req.query.limit, req.query.offset, 60, 24);
 
   const conditions: string[] = [];
   const params: Array<string | number> = [];
@@ -608,7 +607,7 @@ workRouter.post('/quotations/:id/accept', requireAuth, (req, res) => {
     type: 'quotation_accepted',
     title: 'Your Quotation Was Accepted!',
     body: `You have been hired for "${quote.title}" (₹${Number(quote.total_amount).toLocaleString('en-IN')}).`,
-    linkUrl: projectId ? `/projects/${projectId}` : '/dashboard',
+    linkUrl: '/dashboard',
   });
 
   res.json({ ok: true, projectId });
@@ -856,7 +855,7 @@ workRouter.patch('/hiring-requests/:id/respond', requireAuth, (req, res, next) =
       type: 'hiring_update',
       title: `Work Request ${parsed.status.toUpperCase()}`,
       body: `${hr.pro_name} updated "${hr.title}" to ${parsed.status}.`,
-      linkUrl: createdProjectId ? `/projects/${createdProjectId}` : '/dashboard',
+      linkUrl: '/dashboard',
     });
 
     res.json({ ok: true, projectId: createdProjectId });

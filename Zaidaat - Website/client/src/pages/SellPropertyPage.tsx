@@ -7,6 +7,7 @@ import { useToast } from '../lib/toastContext';
 import type { Property } from '../types';
 import { formatINRWords } from '../lib/format';
 import { LocationSelector } from '../components/common/LocationSelector';
+import { usePageMeta } from '../lib/seo';
 
 type AreaUnit =
   | 'sqft'
@@ -137,6 +138,11 @@ const PLOT_AMENITY_OPTIONS = [
 export function SellPropertyPage() {
   const { id } = useParams();
   const isEdit = Boolean(id);
+  usePageMeta({
+    title: isEdit ? 'Edit Property Listing — ZAIDAAT' : 'List Your Property Free — Buy or Rent on ZAIDAAT',
+    description: 'Post residential apartments, plots, Nali/Bigha land, or commercial spaces across India for free on ZAIDAAT.',
+    canonicalPath: isEdit && id ? `/sell/${id}/edit` : '/sell',
+  });
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
   const toast = useToast();
@@ -666,7 +672,7 @@ export function SellPropertyPage() {
                   {m.mediaType === 'video' ? (
                     <video src={m.url} className="h-28 w-full object-cover" />
                   ) : (
-                    <img src={m.url} alt="" className="h-28 w-full object-cover" />
+                    <img src={m.url} alt={`Uploaded property photo ${idx + 1}`} className="h-28 w-full object-cover" />
                   )}
                   <button
                     type="button"

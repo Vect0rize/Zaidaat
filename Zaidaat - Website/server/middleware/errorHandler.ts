@@ -16,6 +16,11 @@ export function errorHandler(err: unknown, _req: Request, res: Response, _next: 
     return;
   }
 
+  if (err instanceof SyntaxError && 'status' in err && (err as { status?: number }).status === 400 && 'body' in err) {
+    res.status(400).json({ error: 'Malformed JSON request body' });
+    return;
+  }
+
   if (err instanceof Error) {
     if (err.message.includes('Unsupported file type')) {
       res.status(400).json({ error: err.message });

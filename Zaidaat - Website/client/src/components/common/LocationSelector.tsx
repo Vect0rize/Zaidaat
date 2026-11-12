@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { MapPin } from 'lucide-react';
 import { api } from '../../lib/api';
 
@@ -23,6 +23,9 @@ export function LocationSelector({
   compact = false,
   stacked = false,
 }: LocationSelectorProps) {
+  const uid = useId();
+  const citiesListId = `${uid}-cities`;
+  const localitiesListId = `${uid}-localities`;
   const [states, setStates] = useState<Array<{ state: string; region_zone: string }>>([]);
   const [cities, setCities] = useState<Array<{ city: string; state: string }>>([]);
   const [localities, setLocalities] = useState<Array<{ locality: string; pincode: string | null }>>([]);
@@ -90,14 +93,14 @@ export function LocationSelector({
         {allowCustom ? (
           <>
             <input
-              list="zaidaat-cities-list"
+              list={citiesListId}
               value={cityValue}
               onChange={(e) => onChange({ state: stateValue, city: e.target.value, locality: '' })}
               placeholder="Select or type city..."
               className="input-field"
               aria-label="City"
             />
-            <datalist id="zaidaat-cities-list">
+            <datalist id={citiesListId}>
               {cities.map((c) => (
                 <option key={`${c.state}-${c.city}`} value={c.city} />
               ))}
@@ -126,14 +129,14 @@ export function LocationSelector({
           {allowCustom ? (
             <>
               <input
-                list="zaidaat-localities-list"
+                list={localitiesListId}
                 value={localityValue}
                 onChange={(e) => onChange({ state: stateValue, city: cityValue, locality: e.target.value })}
                 placeholder="Type or pick locality..."
                 className="input-field"
                 aria-label="Locality"
               />
-              <datalist id="zaidaat-localities-list">
+              <datalist id={localitiesListId}>
                 {localities.map((l) => (
                   <option key={l.locality} value={l.locality} />
                 ))}

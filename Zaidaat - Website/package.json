@@ -17,7 +17,8 @@
     "seed": "tsx server/db/seed.ts",
     "db:reset": "tsx server/db/migrate.ts --reset && tsx server/db/seed.ts",
     "typecheck": "tsc -p tsconfig.server.json --noEmit && npm --prefix client run typecheck",
-    "test:api": "tsx server/tests/integration.test.ts"
+    "test:api": "tsx server/tests/integration.test.ts",
+    "test:audit": "tsx server/tests/destruction.test.ts"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

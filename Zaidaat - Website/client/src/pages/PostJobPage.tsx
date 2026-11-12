@@ -6,8 +6,14 @@ import { useAuth } from '../lib/authContext';
 import { useToast } from '../lib/toastContext';
 import type { JobPost, ProfessionalCategory } from '../types';
 import { LocationSelector } from '../components/common/LocationSelector';
+import { usePageMeta } from '../lib/seo';
 
 export function PostJobPage() {
+  usePageMeta({
+    title: 'Post Work Requirement — Hire Verified Contractors on ZAIDAAT',
+    description: 'Post residential or commercial construction work requirements and receive itemized quotes across India.',
+    canonicalPath: '/post-job',
+  });
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const toast = useToast();
@@ -214,10 +220,11 @@ export function PostJobPage() {
             <div className="mt-3 grid grid-cols-3 gap-3">
               {refImages.map((url, i) => (
                 <div key={url + i} className="relative overflow-hidden rounded-xl border border-slate-200">
-                  <img src={url} alt="" className="h-24 w-full object-cover" />
+                  <img src={url} alt={`Reference upload ${i + 1}`} className="h-24 w-full object-cover" />
                   <button
                     type="button"
                     onClick={() => setRefImages((prev) => prev.filter((_, idx) => idx !== i))}
+                    aria-label={`Remove reference image ${i + 1}`}
                     className="absolute right-1 top-1 rounded-md bg-slate-900/80 p-1 text-white"
                   >
                     <Trash2 className="h-3.5 w-3.5" />

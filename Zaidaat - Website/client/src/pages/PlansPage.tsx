@@ -1,33 +1,54 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CheckCircle2 } from 'lucide-react';
+import { CheckCircle2, RotateCcw } from 'lucide-react';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/authContext';
 import { formatINR } from '../lib/format';
+import { usePageMeta } from '../lib/seo';
 
 export function PlansPage() {
+  usePageMeta({
+    title: 'Membership Plans — ZAIDAAT',
+    description: 'Compare ZAIDAAT property owner and contractor membership plans across India.',
+    canonicalPath: '/plans',
+  });
   const { user, refreshUser } = useAuth();
   const navigate = useNavigate();
   const [plans, setPlans] = useState<any[]>([]);
   const [gatewayConfigured, setGatewayConfigured] = useState(false);
   const [cycle, setCycle] = useState<'monthly' | 'yearly'>('monthly');
+  const [loadingPlans, setLoadingPlans] = useState(true);
+  const [submittingPlan, setSubmittingPlan] = useState<string | null>(null);
   const [msg, setMsg] = useState('');
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    api.get<{ plans: any[]; paymentGatewayConfigured: boolean }>('/api/plans').then((res) => {
+  const loadPlans = useCallback(async () => {
+    setLoadingPlans(true);
+    setError('');
+    try {
+      const res = await api.get<{ plans: any[]; paymentGatewayConfigured: boolean }>('/api/plans');
       setPlans(res.plans);
       setGatewayConfigured(res.paymentGatewayConfigured);
-    });
+    } catch (err: any) {
+      setError(err?.message || 'Unable to load membership plans.');
+    } finally {
+      setLoadingPlans(false);
+    }
   }, []);
+
+  useEffect(() => {
+    loadPlans();
+  }, [loadPlans]);
 
   const handleActivate = async (planCode: string) => {
     if (!user) {
       navigate('/login');
       return;
     }
+    if (submittingPlan) return;
     setError('');
     setMsg('');
+    setSubmittingPlan(planCode);
     try {
       const res = await api.post<{ subscription: any; mode: string }>('/api/plans/subscribe', {
         planCode,
@@ -36,11 +57,13 @@ export function PlansPage() {
       await refreshUser();
       setMsg(
         `Plan "${planCode}" activated (${cycle}) in ${
-          res.mode === 'razorpay' ? 'Razorpay Live' : 'Local Development Sandbox'
+          res.mode === 'razorpay' ? 'Razorpay Live' : 'Sandbox'
         } mode.`
       );
     } catch (err: any) {
       setError(err.message || 'Could not activate plan.');
+    } finally {
+      setSubmittingPlan(null);
     }
   };
 
@@ -55,7 +78,7 @@ export function PlansPage() {
           <p className="mt-1 text-sm text-slate-500">
             {gatewayConfigured
               ? 'Razorpay signature verification is active for paid tiers.'
-              : 'Local development billing sandbox active — configure RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET in .env before production billing.'}
+              : 'Sandbox billing preview active — online payment checkout activates once gateway keys are configured.'}
           </p>
         </div>
 
@@ -93,6 +116,20 @@ export function PlansPage() {
       )}
 
       <div className="mt-8 grid gap-5 md:grid-cols-2 lg:grid-cols-4">
+        {loadingPlans && (
+          <div className="col-span-full rounded-lg border border-slate-200 bg-white p-8 text-center text-sm text-slate-500">
+            Loading membership plans...
+          </div>
+        )}
+        {!loadingPlans && error && plans.length === 0 && (
+          <div className="col-span-full flex flex-wrap items-center justify-between gap-3 rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
+            <span>{error}</span>
+            <button type="button" onClick={loadPlans} className="btn-secondary px-3 py-1.5 text-xs">
+              <RotateCcw className="h-3.5 w-3.5" />
+              Retry
+            </button>
+          </div>
+        )}
         {plans.map((p) => {
           const price = cycle === 'yearly' ? p.yearlyInr : p.monthlyInr;
           const isCurrent = user?.subscription?.plan_code === p.code;
@@ -139,11 +176,15 @@ export function PlansPage() {
 
               <button
                 type="button"
-                disabled={isCurrent}
+                disabled={isCurrent || submittingPlan !== null}
                 onClick={() => handleActivate(p.code)}
                 className={`mt-6 w-full ${isCurrent ? 'btn-secondary' : highlighted ? 'btn-primary' : 'btn-navy'}`}
               >
-                {isCurrent ? 'Current Active Plan' : 'Select Plan'}
+                {isCurrent
+                  ? 'Current Active Plan'
+                  : submittingPlan === p.code
+                  ? 'Activating...'
+                  : 'Select Plan'}
               </button>
             </div>
           );

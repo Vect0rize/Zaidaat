@@ -28,6 +28,7 @@ import { useCompare } from '../lib/compareContext';
 import { useToast } from '../lib/toastContext';
 import { Modal } from '../components/common/Modal';
 import { DetailPageSkeleton } from '../components/common/Skeleton';
+import { usePageMeta } from '../lib/seo';
 
 export function PropertyDetailPage() {
   const { id } = useParams();
@@ -37,6 +38,14 @@ export function PropertyDetailPage() {
   const toast = useToast();
 
   const [property, setProperty] = useState<Property | null>(null);
+  usePageMeta({
+    title: property ? `${property.title} — ${property.city} | ZAIDAAT` : 'Property Details — ZAIDAAT',
+    description: property
+      ? `${property.title} in ${property.locality}, ${property.city}, ${property.state}. View specs, pricing, and enquire directly.`
+      : 'View residential and commercial property listings across India on ZAIDAAT.',
+    canonicalPath: id ? `/properties/${id}` : undefined,
+    type: 'article',
+  });
   const [activeMediaIdx, setActiveMediaIdx] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -56,6 +65,7 @@ export function PropertyDetailPage() {
   const [reportOpen, setReportOpen] = useState(false);
   const [reportReason, setReportReason] = useState('Incorrect Price or Details');
   const [reportDetails, setReportDetails] = useState('');
+  const [reportBusy, setReportBusy] = useState(false);
   const [reportDone, setReportDone] = useState(false);
 
   useEffect(() => {
@@ -133,7 +143,8 @@ export function PropertyDetailPage() {
 
   const handleReport = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!property) return;
+    if (!property || reportBusy) return;
+    setReportBusy(true);
     try {
       await api.post('/api/plans/reports', {
         targetType: 'property',
@@ -145,6 +156,8 @@ export function PropertyDetailPage() {
       toast.success('Report submitted to ZAIDAAT Trust & Safety.');
     } catch (err: any) {
       toast.error(err.message || 'Could not submit report.');
+    } finally {
+      setReportBusy(false);
     }
   };
 
@@ -268,6 +281,7 @@ export function PropertyDetailPage() {
                     key={m.id}
                     type="button"
                     onClick={() => setActiveMediaIdx(idx)}
+                    aria-label={`View media ${idx + 1} for ${property.title}`}
                     className={`h-16 w-24 shrink-0 overflow-hidden rounded-lg border-2 transition ${
                       idx === activeMediaIdx ? 'border-brand-600' : 'border-transparent opacity-70 hover:opacity-100'
                     }`}
@@ -277,7 +291,7 @@ export function PropertyDetailPage() {
                         Video
                       </div>
                     ) : (
-                      <img src={m.url} alt="" className="h-full w-full object-cover" />
+                      <img src={m.url} alt={`${property.title} photo ${idx + 1}`} className="h-full w-full object-cover" />
                     )}
                   </button>
                 ))}
@@ -321,7 +335,7 @@ export function PropertyDetailPage() {
 
             <div className="mt-6 grid grid-cols-2 gap-3 rounded-xl border border-slate-200 bg-slate-50/70 p-4 sm:grid-cols-4">
               <div>
-                <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
                   {property.propertyType === 'plot' || property.propertyType === 'land' ? 'Plot Area' : 'Super Area'}
                 </span>
                 <p className="mt-1 flex items-center gap-1.5 text-sm font-bold text-slate-900 tabular-price">
@@ -330,14 +344,14 @@ export function PropertyDetailPage() {
                 </p>
               </div>
               <div>
-                <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
                   {property.propertyType === 'plot' || property.propertyType === 'land' ? 'Property Type' : 'Configuration'}
                 </span>
                 <p className="mt-1 flex items-center gap-1.5 text-sm font-bold text-slate-900">
                   {property.bedrooms > 0 && property.propertyType !== 'plot' && property.propertyType !== 'land' ? (
                     <>
                       <BedDouble className="h-4 w-4 text-brand-600" />
-                      {property.bedrooms} BHK &middot; <Bath className="h-3.5 w-3.5 text-slate-400" /> {property.bathrooms}
+                      {property.bedrooms} BHK &middot; <Bath className="h-3.5 w-3.5 text-slate-500" /> {property.bathrooms}
                     </>
                   ) : (
                     formatLabel(property.propertyType)
@@ -345,7 +359,7 @@ export function PropertyDetailPage() {
                 </p>
               </div>
               <div>
-                <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
                   {property.propertyType === 'plot' || property.propertyType === 'land' ? 'Facing' : 'Furnishing'}
                 </span>
                 <p className="mt-1 text-sm font-bold text-slate-900">
@@ -355,23 +369,23 @@ export function PropertyDetailPage() {
                 </p>
               </div>
               <div>
-                <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Possession</span>
+                <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Possession</span>
                 <p className="mt-1 text-sm font-bold text-slate-900">{formatLabel(property.possessionStatus)}</p>
               </div>
             </div>
 
             <div className="mt-6">
               <h2 className="text-base font-bold text-slate-900">Property Description</h2>
-              <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-slate-600">
+              <p className="mt-2 whitespace-pre-line break-words text-sm leading-relaxed text-slate-600">
                 {property.description}
               </p>
             </div>
 
             <div className="mt-6 grid gap-4 border-t border-slate-100 pt-5 text-sm sm:grid-cols-3">
               <div className="flex items-start gap-2.5">
-                <Compass className="mt-0.5 h-4 w-4 text-slate-400" />
+                <Compass className="mt-0.5 h-4 w-4 text-slate-500" />
                 <div>
-                  <span className="text-xs text-slate-400">Facing</span>
+                  <span className="text-xs text-slate-500">Facing</span>
                   <p className="font-semibold text-slate-800">{property.facing || 'Not specified'}</p>
                 </div>
               </div>
@@ -597,8 +611,8 @@ export function PropertyDetailPage() {
                 className="input-field"
               />
             </div>
-            <button type="submit" className="btn-primary w-full">
-              Submit Report
+            <button type="submit" disabled={reportBusy} className="btn-primary w-full">
+              {reportBusy ? 'Submitting...' : 'Submit Report'}
             </button>
           </form>
         )}

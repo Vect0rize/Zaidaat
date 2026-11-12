@@ -28,6 +28,7 @@ import {
 import { api, uploadFiles, uploadKycFiles } from '../lib/api';
 import { useAuth } from '../lib/authContext';
 import { useToast } from '../lib/toastContext';
+import { usePageMeta } from '../lib/seo';
 import type { JobPost, ProfessionalProfile, ProjectSummary, Property } from '../types';
 import { formatDate, formatINR, formatLabel, formatPropertyPrice } from '../lib/format';
 import { Avatar } from '../components/common/Avatar';
@@ -56,6 +57,11 @@ type WorkerNavKey =
   | 'reviews';
 
 export function DashboardPage() {
+  usePageMeta({
+    title: 'My Workspace & Dashboard — ZAIDAAT',
+    description: 'Manage property listings, incoming enquiries, hiring requests, quotes, and KYC documents.',
+    canonicalPath: '/dashboard',
+  });
   const { user, loading: authLoading, refreshUser } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
@@ -107,6 +113,9 @@ export function DashboardPage() {
   const [hrQuoteSummary, setHrQuoteSummary] = useState('');
   const [hrQuoteAmount, setHrQuoteAmount] = useState('');
   const [hrQuoteDays, setHrQuoteDays] = useState('10');
+  const [portBusy, setPortBusy] = useState(false);
+  const [verBusy, setVerBusy] = useState(false);
+  const [hrQuoteBusy, setHrQuoteBusy] = useState(false);
 
   const loadDashboard = useCallback(async () => {
     if (!user) return;
@@ -162,33 +171,49 @@ export function DashboardPage() {
 
   const handleDeleteProperty = async (id: number) => {
     if (!window.confirm('Delete this property listing permanently?')) return;
-    await api.delete(`/api/properties/${id}`);
-    toast.success('Property listing removed.');
-    loadDashboard();
+    try {
+      await api.delete(`/api/properties/${id}`);
+      toast.success('Property listing removed.');
+      loadDashboard();
+    } catch (err: any) {
+      toast.error(err?.message || 'Unable to delete property listing.');
+    }
   };
 
   const handleAvailabilityChange = async (availabilityStatus: string) => {
-    await api.patch('/api/professionals/me/availability', { availabilityStatus });
-    await refreshUser();
-    toast.success(`Availability switched to ${availabilityStatus}.`);
-    loadDashboard();
+    try {
+      await api.patch('/api/professionals/me/availability', { availabilityStatus });
+      await refreshUser();
+      toast.success(`Availability switched to ${availabilityStatus}.`);
+      loadDashboard();
+    } catch (err: any) {
+      toast.error(err?.message || 'Unable to update availability.');
+    }
   };
 
   const handleHiringRespond = async (hrId: number, status: 'accepted' | 'rejected') => {
-    await api.patch<{ ok: boolean; projectId: number | null }>(
-      `/api/work/hiring-requests/${hrId}/respond`,
-      { status }
-    );
-    toast.success(status === 'accepted' ? 'Work request accepted!' : 'Work request declined.');
-    loadDashboard();
+    try {
+      await api.patch<{ ok: boolean; projectId: number | null }>(
+        `/api/work/hiring-requests/${hrId}/respond`,
+        { status }
+      );
+      toast.success(status === 'accepted' ? 'Work request accepted!' : 'Work request declined.');
+      loadDashboard();
+    } catch (err: any) {
+      toast.error(err?.message || 'Unable to update hiring request.');
+    }
   };
 
   const handleAcceptQuote = async (quoteId: number) => {
-    await api.post<{ ok: boolean; projectId: number | null }>(
-      `/api/work/quotations/${quoteId}/accept`
-    );
-    toast.success('Quotation accepted and professional hired.');
-    loadDashboard();
+    try {
+      await api.post<{ ok: boolean; projectId: number | null }>(
+        `/api/work/quotations/${quoteId}/accept`
+      );
+      toast.success('Quotation accepted and professional hired.');
+      loadDashboard();
+    } catch (err: any) {
+      toast.error(err?.message || 'Unable to accept quotation.');
+    }
   };
 
   if (authLoading || !user) {
@@ -461,7 +486,7 @@ export function DashboardPage() {
                           <div className="flex items-center gap-3.5">
                             <img
                               src={p.images[0]?.url || '/uploads/seed/prop-pune-apt.jpg'}
-                              alt=""
+                              alt={p.title}
                               className="h-16 w-24 rounded-lg object-cover border border-slate-200"
                             />
                             <div>
@@ -522,9 +547,13 @@ export function DashboardPage() {
                           <button
                             type="button"
                             onClick={async () => {
-                              await api.post(`/api/properties/${sp.id}/save`);
-                              toast.info('Removed from saved properties.');
-                              loadDashboard();
+                              try {
+                                await api.post(`/api/properties/${sp.id}/save`);
+                                toast.info('Removed from saved properties.');
+                                loadDashboard();
+                              } catch (err: any) {
+                                toast.error(err?.message || 'Unable to remove saved property.');
+                              }
                             }}
                             className="text-xs font-semibold text-rose-600 hover:underline"
                           >
@@ -550,11 +579,16 @@ export function DashboardPage() {
                             <div className="flex items-center justify-between gap-2">
                               <p className="font-bold text-slate-900">{enq.buyer_name} ({enq.buyer_phone})</p>
                               <select
+                                aria-label={`Enquiry status for ${enq.buyer_name}`}
                                 value={enq.status}
                                 onChange={async (e) => {
-                                  await api.patch(`/api/properties/enquiries/${enq.id}/status`, { status: e.target.value });
-                                  toast.success('Enquiry status updated.');
-                                  loadDashboard();
+                                  try {
+                                    await api.patch(`/api/properties/enquiries/${enq.id}/status`, { status: e.target.value });
+                                    toast.success('Enquiry status updated.');
+                                    loadDashboard();
+                                  } catch (err: any) {
+                                    toast.error(err?.message || 'Unable to update enquiry status.');
+                                  }
                                 }}
                                 className="rounded-lg border border-slate-300 bg-white px-2 py-1 text-xs font-semibold"
                               >
@@ -1025,9 +1059,13 @@ export function DashboardPage() {
                           <button
                             type="button"
                             onClick={async () => {
-                              await api.delete(`/api/professionals/me/portfolio/${item.id}`);
-                              toast.info('Portfolio photo removed.');
-                              loadDashboard();
+                              try {
+                                await api.delete(`/api/professionals/me/portfolio/${item.id}`);
+                                toast.info('Portfolio photo removed.');
+                                loadDashboard();
+                              } catch (err: any) {
+                                toast.error(err?.message || 'Unable to remove portfolio photo.');
+                              }
                             }}
                             className="mt-2 text-xs font-semibold text-rose-600 hover:underline"
                           >
@@ -1106,19 +1144,27 @@ export function DashboardPage() {
         <form
           onSubmit={async (e) => {
             e.preventDefault();
-            await api.post('/api/professionals/me/portfolio', {
-              title: portTitle,
-              description: portDesc,
-              projectCity: portCity,
-              completionYear: Number(portYear),
-              budgetDisplay: portBudget,
-              imageUrl: portImage,
-            });
-            setPortOpen(false);
-            setPortTitle('');
-            setPortDesc('');
-            toast.success('Work photo added to your portfolio.');
-            loadDashboard();
+            if (portBusy) return;
+            setPortBusy(true);
+            try {
+              await api.post('/api/professionals/me/portfolio', {
+                title: portTitle,
+                description: portDesc,
+                projectCity: portCity,
+                completionYear: Number(portYear),
+                budgetDisplay: portBudget,
+                imageUrl: portImage,
+              });
+              setPortOpen(false);
+              setPortTitle('');
+              setPortDesc('');
+              toast.success('Work photo added to your portfolio.');
+              loadDashboard();
+            } catch (err: any) {
+              toast.error(err?.message || 'Unable to add portfolio item.');
+            } finally {
+              setPortBusy(false);
+            }
           }}
           className="space-y-4"
         >
@@ -1126,6 +1172,7 @@ export function DashboardPage() {
             type="text"
             required
             placeholder="Project Title"
+            aria-label="Project Title"
             value={portTitle}
             onChange={(e) => setPortTitle(e.target.value)}
             className="input-field"
@@ -1135,33 +1182,39 @@ export function DashboardPage() {
             required
             minLength={10}
             placeholder="Work performed and materials used..."
+            aria-label="Project Description"
             value={portDesc}
             onChange={(e) => setPortDesc(e.target.value)}
             className="input-field"
           />
           <div className="grid grid-cols-3 gap-2">
-            <input type="text" placeholder="City" value={portCity} onChange={(e) => setPortCity(e.target.value)} className="input-field" />
-            <input type="text" placeholder="Value (e.g. ₹2.4L)" value={portBudget} onChange={(e) => setPortBudget(e.target.value)} className="input-field" />
-            <input type="number" placeholder="Year" value={portYear} onChange={(e) => setPortYear(e.target.value)} className="input-field" />
+            <input type="text" placeholder="City" aria-label="City" value={portCity} onChange={(e) => setPortCity(e.target.value)} className="input-field" />
+            <input type="text" placeholder="Value (e.g. ₹2.4L)" aria-label="Project Value" value={portBudget} onChange={(e) => setPortBudget(e.target.value)} className="input-field" />
+            <input type="number" placeholder="Year" aria-label="Completion Year" value={portYear} onChange={(e) => setPortYear(e.target.value)} className="input-field" />
           </div>
           <label className="btn-secondary w-full cursor-pointer text-xs">
             <Upload className="h-4 w-4" /> Upload Project Photo
             <input
               type="file"
               accept="image/*"
+              aria-label="Upload project photo"
               className="hidden"
               onChange={async (e) => {
                 if (!e.target.files?.length) return;
-                const files = await uploadFiles(e.target.files);
-                if (files[0]) {
-                  setPortImage(files[0].url);
-                  toast.success('Photo uploaded.');
+                try {
+                  const files = await uploadFiles(e.target.files);
+                  if (files[0]) {
+                    setPortImage(files[0].url);
+                    toast.success('Photo uploaded.');
+                  }
+                } catch (err: any) {
+                  toast.error(err?.message || 'Could not upload project photo.');
                 }
               }}
             />
           </label>
-          <button type="submit" className="btn-primary w-full">
-            Save Portfolio Item
+          <button type="submit" disabled={portBusy} className="btn-primary w-full">
+            {portBusy ? 'Saving...' : 'Save Portfolio Item'}
           </button>
         </form>
       </Modal>
@@ -1171,22 +1224,30 @@ export function DashboardPage() {
         <form
           onSubmit={async (e) => {
             e.preventDefault();
-            await api.post('/api/professionals/me/verification', {
-              documentType: verType,
-              documentNumberMasked: verNumber,
-              documentFileUrl: verFileUrl || null,
-            });
-            setVerOpen(false);
-            setVerNumber('');
-            setVerFileUrl('');
-            toast.success('KYC document submitted for admin verification.');
-            loadDashboard();
+            if (verBusy) return;
+            setVerBusy(true);
+            try {
+              await api.post('/api/professionals/me/verification', {
+                documentType: verType,
+                documentNumberMasked: verNumber,
+                documentFileUrl: verFileUrl || null,
+              });
+              setVerOpen(false);
+              setVerNumber('');
+              setVerFileUrl('');
+              toast.success('KYC document submitted for admin verification.');
+              loadDashboard();
+            } catch (err: any) {
+              toast.error(err?.message || 'Unable to submit KYC verification.');
+            } finally {
+              setVerBusy(false);
+            }
           }}
           className="space-y-4"
         >
           <div>
             <label className="label-field">Document Type</label>
-            <select value={verType} onChange={(e) => setVerType(e.target.value)} className="input-field">
+            <select aria-label="Document Type" value={verType} onChange={(e) => setVerType(e.target.value)} className="input-field">
               <option value="aadhaar_masked">Aadhaar (Masked last 4 digits only)</option>
               <option value="pan">PAN Card</option>
               <option value="gst">GST Registration</option>
@@ -1201,6 +1262,7 @@ export function DashboardPage() {
               required
               minLength={4}
               placeholder="e.g. XXXX-XXXX-4821 or 27AABCU9603R1ZM"
+              aria-label="Masked Document Number"
               value={verNumber}
               onChange={(e) => setVerNumber(e.target.value)}
               className="input-field"
@@ -1212,6 +1274,7 @@ export function DashboardPage() {
             <input
               type="file"
               accept="image/*,application/pdf"
+              aria-label="Upload supporting KYC file"
               className="hidden"
               onChange={async (e) => {
                 if (!e.target.files?.length) return;
@@ -1227,8 +1290,8 @@ export function DashboardPage() {
               }}
             />
           </label>
-          <button type="submit" className="btn-primary w-full">
-            Submit for Admin Verification
+          <button type="submit" disabled={verBusy} className="btn-primary w-full">
+            {verBusy ? 'Submitting...' : 'Submit for Admin Verification'}
           </button>
         </form>
       </Modal>
@@ -1242,22 +1305,29 @@ export function DashboardPage() {
         <form
           onSubmit={async (e) => {
             e.preventDefault();
-            if (!hrQuoteTarget) return;
-            await api.post('/api/work/quotations', {
-              hiringRequestId: hrQuoteTarget.id,
-              title: hrQuoteTitle,
-              scopeSummary: hrQuoteSummary,
-              totalAmount: Number(hrQuoteAmount),
-              estimatedDurationDays: Number(hrQuoteDays),
-              lineItems: [{ item: hrQuoteTitle, qty: '1 Lot', amount: Number(hrQuoteAmount) }],
-            });
-            setHrQuoteTarget(null);
-            toast.success('Itemized quotation sent to client.');
-            loadDashboard();
+            if (!hrQuoteTarget || hrQuoteBusy) return;
+            setHrQuoteBusy(true);
+            try {
+              await api.post('/api/work/quotations', {
+                hiringRequestId: hrQuoteTarget.id,
+                title: hrQuoteTitle,
+                scopeSummary: hrQuoteSummary,
+                totalAmount: Number(hrQuoteAmount),
+                estimatedDurationDays: Number(hrQuoteDays),
+                lineItems: [{ item: hrQuoteTitle, qty: '1 Lot', amount: Number(hrQuoteAmount) }],
+              });
+              setHrQuoteTarget(null);
+              toast.success('Itemized quotation sent to client.');
+              loadDashboard();
+            } catch (err: any) {
+              toast.error(err?.message || 'Unable to send quotation.');
+            } finally {
+              setHrQuoteBusy(false);
+            }
           }}
           className="space-y-4"
         >
-          <input type="text" required value={hrQuoteTitle} onChange={(e) => setHrQuoteTitle(e.target.value)} className="input-field" />
+          <input type="text" required aria-label="Quotation Title" value={hrQuoteTitle} onChange={(e) => setHrQuoteTitle(e.target.value)} className="input-field" />
           <textarea
             rows={3}
             required
@@ -1265,6 +1335,7 @@ export function DashboardPage() {
             value={hrQuoteSummary}
             onChange={(e) => setHrQuoteSummary(e.target.value)}
             placeholder="Scope, material specs, and inclusions..."
+            aria-label="Scope summary"
             className="input-field"
           />
           <div className="grid grid-cols-2 gap-3">
@@ -1275,6 +1346,7 @@ export function DashboardPage() {
               value={hrQuoteAmount}
               onChange={(e) => setHrQuoteAmount(e.target.value)}
               placeholder="Total Amount (INR)"
+              aria-label="Total Amount INR"
               className="input-field"
             />
             <input
@@ -1284,11 +1356,12 @@ export function DashboardPage() {
               value={hrQuoteDays}
               onChange={(e) => setHrQuoteDays(e.target.value)}
               placeholder="Days"
+              aria-label="Estimated Days"
               className="input-field"
             />
           </div>
-          <button type="submit" className="btn-primary w-full">
-            Send Quotation to Client
+          <button type="submit" disabled={hrQuoteBusy} className="btn-primary w-full">
+            {hrQuoteBusy ? 'Sending...' : 'Send Quotation to Client'}
           </button>
         </form>
       </Modal>

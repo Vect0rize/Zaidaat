@@ -10,7 +10,7 @@ const safeMediaUrlSchema = z
     message: 'Media URL must start with /uploads/ or http(s)://',
   });
 
-const optionalSafeMediaUrlSchema = z
+export const optionalSafeMediaUrlSchema = z
   .string()
   .trim()
   .max(300)
@@ -112,6 +112,10 @@ export const propertyCreateSchema = z.object({
     .max(15)
     .optional()
     .default([]),
+});
+
+export const propertyUpdateSchema = propertyCreateSchema.extend({
+  status: z.enum(['active', 'pending', 'sold', 'rented', 'archived']).optional(),
 });
 
 export const propertyEnquirySchema = z.object({

@@ -16,14 +16,22 @@ import { LocationSelector } from '../components/common/LocationSelector';
 import { ProfessionalCard } from '../components/professional/ProfessionalCard';
 import { EmptyState } from '../components/common/EmptyState';
 import { ProfessionalCardSkeleton } from '../components/common/Skeleton';
+import { usePageMeta } from '../lib/seo';
 
 export function ProfessionalsPage() {
+  usePageMeta({
+    title: 'Hire Verified Contractors, Architects & Build Traders — ZAIDAAT',
+    description:
+      'Compare KYC-verified construction contractors, architects, electricians, plumbers, and interior specialists across India.',
+    canonicalPath: '/professionals',
+  });
   const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const [categories, setCategories] = useState<ProfessionalCategory[]>([]);
   const [pros, setPros] = useState<ProfessionalProfile[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
   const [categorySlug, setCategorySlug] = useState(searchParams.get('category') || '');
@@ -39,6 +47,14 @@ export function ProfessionalsPage() {
   const [sort, setSort] = useState('rating');
 
   useEffect(() => {
+    setCategorySlug(searchParams.get('category') || '');
+    setStateVal(searchParams.get('state') || '');
+    setCityVal(searchParams.get('city') || '');
+    setLocalityVal(searchParams.get('locality') || '');
+    setQ(searchParams.get('q') || '');
+  }, [searchParams]);
+
+  useEffect(() => {
     api
       .get<{ categories: ProfessionalCategory[] }>('/api/professionals/categories')
       .then((res) => setCategories(res.categories))
@@ -47,6 +63,7 @@ export function ProfessionalsPage() {
 
   const fetchPros = useCallback(async () => {
     setLoading(true);
+    setLoadError('');
     const params = new URLSearchParams();
     if (categorySlug) params.set('category', categorySlug);
     if (stateVal) params.set('state', stateVal);
@@ -66,6 +83,8 @@ export function ProfessionalsPage() {
       );
       setPros(res.professionals);
       setTotal(res.total);
+    } catch (err: any) {
+      setLoadError(err?.message || 'Unable to load professionals directory right now.');
     } finally {
       setLoading(false);
     }
@@ -287,6 +306,7 @@ export function ProfessionalsPage() {
             <button
               type="button"
               onClick={() => setMobileFiltersOpen((v) => !v)}
+              aria-expanded={mobileFiltersOpen}
               className="btn-secondary px-3 py-2.5 text-xs lg:hidden"
             >
               <SlidersHorizontal className="h-3.5 w-3.5" />
@@ -344,6 +364,15 @@ export function ProfessionalsPage() {
 
           {/* Results Grid */}
           <div className="mt-4">
+            {loadError && (
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
+                <span>{loadError}</span>
+                <button type="button" onClick={fetchPros} className="btn-secondary px-3 py-1.5 text-xs">
+                  <RotateCcw className="h-3.5 w-3.5" />
+                  Retry
+                </button>
+              </div>
+            )}
             {loading ? (
               <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
                 {[1, 2, 3, 4, 5, 6].map((n) => (

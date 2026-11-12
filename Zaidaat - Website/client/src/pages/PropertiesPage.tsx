@@ -7,16 +7,29 @@ import { LocationSelector } from '../components/common/LocationSelector';
 import { PropertyCard } from '../components/property/PropertyCard';
 import { EmptyState } from '../components/common/EmptyState';
 import { PropertyCardSkeleton } from '../components/common/Skeleton';
+import { usePageMeta } from '../lib/seo';
 
 interface PropertiesPageProps {
   fixedPurpose?: 'buy' | 'rent';
 }
 
 export function PropertiesPage({ fixedPurpose }: PropertiesPageProps) {
+  usePageMeta({
+    title:
+      fixedPurpose === 'buy'
+        ? 'Buy Residential & Commercial Properties in India — ZAIDAAT'
+        : fixedPurpose === 'rent'
+        ? 'Rent Flats, Houses & Office Spaces in India — ZAIDAAT'
+        : 'All-India Property Catalog — Buy & Rent on ZAIDAAT',
+    description:
+      'Filter residential flats, plots, Nali/Bigha land, villas, and commercial listings across all 28 States and 8 Union Territories.',
+    canonicalPath: fixedPurpose === 'buy' ? '/buy' : fixedPurpose === 'rent' ? '/rent' : '/properties',
+  });
   const [searchParams, setSearchParams] = useSearchParams();
   const [properties, setProperties] = useState<Property[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
   const [showMoreFilters, setShowMoreFilters] = useState(false);
 
   const [purpose, setPurpose] = useState<string>(fixedPurpose || searchParams.get('purpose') || '');
@@ -33,15 +46,23 @@ export function PropertiesPage({ fixedPurpose }: PropertiesPageProps) {
   const [sort, setSort] = useState(searchParams.get('sort') || 'newest');
 
   useEffect(() => {
-    if (fixedPurpose) {
-      setPurpose(fixedPurpose);
-    } else if (!searchParams.get('purpose')) {
-      setPurpose('');
-    }
+    setPurpose(fixedPurpose || searchParams.get('purpose') || '');
+    setCategory(searchParams.get('category') || '');
+    setType(searchParams.get('type') || '');
+    setStateVal(searchParams.get('state') || '');
+    setCityVal(searchParams.get('city') || '');
+    setLocalityVal(searchParams.get('locality') || '');
+    setMinPrice(searchParams.get('minPrice') || '');
+    setMaxPrice(searchParams.get('maxPrice') || '');
+    setBedrooms(searchParams.get('bedrooms') || '');
+    setFurnishing(searchParams.get('furnishing') || '');
+    setQ(searchParams.get('q') || '');
+    setSort(searchParams.get('sort') || 'newest');
   }, [fixedPurpose, searchParams]);
 
   const fetchProperties = useCallback(async () => {
     setLoading(true);
+    setLoadError('');
     const params = new URLSearchParams();
     if (purpose) params.set('purpose', purpose);
     if (category) params.set('category', category);
@@ -62,6 +83,8 @@ export function PropertiesPage({ fixedPurpose }: PropertiesPageProps) {
       );
       setProperties(res.properties);
       setTotal(res.total);
+    } catch (err: any) {
+      setLoadError(err?.message || 'Unable to load properties right now.');
     } finally {
       setLoading(false);
     }
@@ -199,6 +222,7 @@ export function PropertiesPage({ fixedPurpose }: PropertiesPageProps) {
             <button
               type="button"
               onClick={() => setShowMoreFilters((v) => !v)}
+              aria-expanded={showMoreFilters}
               className="btn-secondary flex-1 py-2.5 text-xs"
             >
               <SlidersHorizontal className="h-3.5 w-3.5" />
@@ -244,6 +268,7 @@ export function PropertiesPage({ fixedPurpose }: PropertiesPageProps) {
               value={minPrice}
               onChange={(e) => setMinPrice(e.target.value)}
               placeholder={purpose === 'rent' ? 'Min Rent (INR/mo)' : 'Min Budget (INR)'}
+              aria-label={purpose === 'rent' ? 'Minimum monthly rent INR' : 'Minimum budget INR'}
               className="input-field"
             />
             <input
@@ -251,6 +276,7 @@ export function PropertiesPage({ fixedPurpose }: PropertiesPageProps) {
               value={maxPrice}
               onChange={(e) => setMaxPrice(e.target.value)}
               placeholder={purpose === 'rent' ? 'Max Rent (INR/mo)' : 'Max Budget (INR)'}
+              aria-label={purpose === 'rent' ? 'Maximum monthly rent INR' : 'Maximum budget INR'}
               className="input-field"
             />
             <select value={type} onChange={(e) => setType(e.target.value)} className="input-field" aria-label="Property Type">
@@ -290,6 +316,15 @@ export function PropertiesPage({ fixedPurpose }: PropertiesPageProps) {
 
       {/* Results Grid */}
       <div className="mt-5">
+        {loadError && (
+          <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
+            <span>{loadError}</span>
+            <button type="button" onClick={fetchProperties} className="btn-secondary px-3 py-1.5 text-xs">
+              <RotateCcw className="h-3.5 w-3.5" />
+              Retry
+            </button>
+          </div>
+        )}
         {loading ? (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {[1, 2, 3, 4, 5, 6].map((n) => (

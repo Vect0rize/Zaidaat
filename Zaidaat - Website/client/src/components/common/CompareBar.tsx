@@ -13,10 +13,10 @@ export function CompareBar() {
 
   return (
     <>
-      <div className="fixed bottom-4 left-1/2 z-40 w-[94%] max-w-3xl -translate-x-1/2 rounded-xl border border-slate-700 bg-navy-900 px-4 py-2.5 text-white shadow-elevated animate-toast-in">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-3 overflow-x-auto">
-            <span className="flex items-center gap-1.5 text-xs font-semibold text-brand-400 shrink-0">
+      <div className="fixed bottom-3 left-1/2 z-40 w-[96%] max-w-3xl -translate-x-1/2 rounded-xl border border-slate-700 bg-navy-900 px-3 py-2 text-white shadow-elevated animate-toast-in sm:bottom-4 sm:w-[94%] sm:px-4 sm:py-2.5">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+          <div className="flex items-center gap-2 overflow-x-auto pb-0.5 sm:gap-3 sm:pb-0">
+            <span className="flex shrink-0 items-center gap-1.5 text-xs font-semibold text-brand-400">
               <ArrowLeftRight className="h-3.5 w-3.5" />
               Compare ({compareItems.length}/4)
             </span>
@@ -24,9 +24,9 @@ export function CompareBar() {
               {compareItems.map((item) => (
                 <div
                   key={item.id}
-                  className="flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800 px-2.5 py-1 text-xs font-medium text-slate-100"
+                  className="flex shrink-0 items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800 px-2 py-1 text-xs font-medium text-slate-100 sm:px-2.5"
                 >
-                  <span className="max-w-[110px] truncate">{item.title}</span>
+                  <span className="max-w-[95px] truncate sm:max-w-[110px]">{item.title}</span>
                   <button
                     type="button"
                     onClick={() => removeCompare(item.id)}

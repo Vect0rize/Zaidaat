@@ -23,6 +23,7 @@ import { Avatar } from '../components/common/Avatar';
 import { Modal } from '../components/common/Modal';
 import { LocationSelector } from '../components/common/LocationSelector';
 import { DetailPageSkeleton } from '../components/common/Skeleton';
+import { usePageMeta } from '../lib/seo';
 
 export function ProfessionalDetailPage() {
   const { id } = useParams();
@@ -32,6 +33,14 @@ export function ProfessionalDetailPage() {
   const toast = useToast();
 
   const [pro, setPro] = useState<ProfessionalProfile | null>(null);
+  usePageMeta({
+    title: pro ? `${pro.displayName} — ${pro.categoryName} in ${pro.city} | ZAIDAAT` : 'Professional Profile — ZAIDAAT',
+    description: pro
+      ? `${pro.headline || pro.displayName} offering ${pro.categoryName} services in ${pro.city}, ${pro.state}.`
+      : 'Browse verified construction and home service professionals on ZAIDAAT.',
+    canonicalPath: id ? `/professionals/${id}` : undefined,
+    type: 'profile',
+  });
   const [portfolio, setPortfolio] = useState<any[]>([]);
   const [reviews, setReviews] = useState<any[]>([]);
   const [verifiedDocs, setVerifiedDocs] = useState<any[]>([]);
@@ -56,6 +65,7 @@ export function ProfessionalDetailPage() {
   // Message Modal
   const [msgOpen, setMsgOpen] = useState(false);
   const [msgBody, setMsgBody] = useState('');
+  const [msgBusy, setMsgBusy] = useState(false);
   const [msgSent, setMsgSent] = useState(false);
 
   // Review Modal
@@ -66,12 +76,14 @@ export function ProfessionalDetailPage() {
   const [revValue, setRevValue] = useState(5);
   const [revTitle, setRevTitle] = useState('');
   const [revComment, setRevComment] = useState('');
+  const [revBusy, setRevBusy] = useState(false);
   const [revErr, setRevErr] = useState('');
 
   // Report Modal
   const [reportOpen, setReportOpen] = useState(false);
   const [reportReason, setReportReason] = useState('Unprofessional Conduct / Fake Credentials');
   const [reportDetails, setReportDetails] = useState('');
+  const [reportBusy, setReportBusy] = useState(false);
   const [reportDone, setReportDone] = useState(false);
 
   const loadDetail = useCallback(() => {
@@ -143,7 +155,8 @@ export function ProfessionalDetailPage() {
 
   const handleMessageSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!pro) return;
+    if (!pro || msgBusy) return;
+    setMsgBusy(true);
     try {
       const res = await api.post<{ threadKey: string }>('/api/messages', {
         recipientId: pro.userId,
@@ -159,13 +172,16 @@ export function ProfessionalDetailPage() {
       }, 500);
     } catch (err: any) {
       toast.error(err.message || 'Could not send message.');
+    } finally {
+      setMsgBusy(false);
     }
   };
 
   const handleReviewSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!pro) return;
+    if (!pro || revBusy) return;
     setRevErr('');
+    setRevBusy(true);
     try {
       await api.post(`/api/professionals/${pro.id}/reviews`, {
         rating: revRating,
@@ -184,6 +200,8 @@ export function ProfessionalDetailPage() {
       const msg = err.message || 'Failed to submit review';
       setRevErr(msg);
       toast.error(msg);
+    } finally {
+      setRevBusy(false);
     }
   };
 
@@ -617,10 +635,11 @@ export function ProfessionalDetailPage() {
               value={msgBody}
               onChange={(e) => setMsgBody(e.target.value)}
               placeholder="Ask about availability, material pricing, or site visits..."
+              aria-label="Message text"
               className="input-field"
             />
-            <button type="submit" className="btn-primary w-full">
-              Send Message
+            <button type="submit" disabled={msgBusy} className="btn-primary w-full">
+              {msgBusy ? 'Sending...' : 'Send Message'}
             </button>
           </form>
         )}
@@ -676,8 +695,8 @@ export function ProfessionalDetailPage() {
               className="input-field"
             />
           </div>
-          <button type="submit" className="btn-primary w-full">
-            Publish Review
+          <button type="submit" disabled={revBusy} className="btn-primary w-full">
+            {revBusy ? 'Publishing...' : 'Publish Review'}
           </button>
         </form>
       </Modal>
@@ -719,14 +738,22 @@ export function ProfessionalDetailPage() {
           <form
             onSubmit={async (e) => {
               e.preventDefault();
-              await api.post('/api/plans/reports', {
-                targetType: 'professional',
-                targetId: pro.id,
-                reason: reportReason,
-                details: reportDetails,
-              });
-              setReportDone(true);
-              toast.success('Profile report submitted.');
+              if (reportBusy) return;
+              setReportBusy(true);
+              try {
+                await api.post('/api/plans/reports', {
+                  targetType: 'professional',
+                  targetId: pro.id,
+                  reason: reportReason,
+                  details: reportDetails,
+                });
+                setReportDone(true);
+                toast.success('Profile report submitted.');
+              } catch (err: any) {
+                toast.error(err?.message || 'Unable to submit report.');
+              } finally {
+                setReportBusy(false);
+              }
             }}
             className="space-y-4"
           >
@@ -734,6 +761,7 @@ export function ProfessionalDetailPage() {
               type="text"
               value={reportReason}
               onChange={(e) => setReportReason(e.target.value)}
+              aria-label="Report reason"
               className="input-field"
               required
             />
@@ -744,10 +772,11 @@ export function ProfessionalDetailPage() {
               value={reportDetails}
               onChange={(e) => setReportDetails(e.target.value)}
               placeholder="Explain the issue..."
+              aria-label="Report details"
               className="input-field"
             />
-            <button type="submit" className="btn-primary w-full">
-              Submit Report
+            <button type="submit" disabled={reportBusy} className="btn-primary w-full">
+              {reportBusy ? 'Submitting...' : 'Submit Report'}
             </button>
           </form>
         )}

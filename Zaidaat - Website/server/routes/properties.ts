@@ -2,8 +2,16 @@ import { Router } from 'express';
 import { getDb, withTransaction } from '../db/connection.js';
 import { optionalAuth, requireAuth } from '../middleware/auth.js';
 import { createNotification } from '../utils/notifications.js';
-import { cleanOptionalText, cleanText, safeJsonParse, slugify } from '../utils/sanitize.js';
-import { propertyCreateSchema, propertyEnquirySchema } from '../utils/validation.js';
+import {
+  cleanOptionalText,
+  cleanText,
+  parseNonNegativeNumber,
+  parsePagination,
+  parsePositiveInt,
+  safeJsonParse,
+  slugify,
+} from '../utils/sanitize.js';
+import { propertyCreateSchema, propertyEnquirySchema, propertyUpdateSchema } from '../utils/validation.js';
 import { z } from 'zod';
 
 export const propertiesRouter = Router();
@@ -102,14 +110,13 @@ propertiesRouter.get('/', optionalAuth, (req, res) => {
   const state = cleanText(String(req.query.state || ''), 80);
   const city = cleanText(String(req.query.city || ''), 80);
   const locality = cleanText(String(req.query.locality || ''), 120);
-  const minPrice = Number(req.query.minPrice || 0);
-  const maxPrice = Number(req.query.maxPrice || 0);
-  const bedrooms = Number(req.query.bedrooms || 0);
+  const minPrice = parseNonNegativeNumber(req.query.minPrice);
+  const maxPrice = parseNonNegativeNumber(req.query.maxPrice);
+  const bedrooms = Math.floor(parseNonNegativeNumber(req.query.bedrooms));
   const furnishing = String(req.query.furnishing || '');
   const possession = String(req.query.possession || '');
   const sort = String(req.query.sort || 'newest');
-  const limit = Math.min(Number(req.query.limit || 24), 60);
-  const offset = Math.max(Number(req.query.offset || 0), 0);
+  const { limit, offset } = parsePagination(req.query.limit, req.query.offset, 60, 24);
 
   const conditions: string[] = [`p.status = 'active'`, `u.is_active = 1`];
   const params: Array<string | number> = [];
@@ -463,7 +470,11 @@ propertiesRouter.post('/', requireAuth, (req, res, next) => {
 
 propertiesRouter.put('/:id', requireAuth, (req, res, next) => {
   try {
-    const id = Number(req.params.id);
+    const id = parsePositiveInt(req.params.id);
+    if (!id) {
+      res.status(400).json({ error: 'Invalid property ID.' });
+      return;
+    }
     const db = getDb();
     const existing = db
       .prepare(`SELECT id, owner_id FROM properties WHERE id = ?`)
@@ -478,11 +489,9 @@ propertiesRouter.put('/:id', requireAuth, (req, res, next) => {
       return;
     }
 
-    const parsed = propertyCreateSchema.parse(req.body);
+    const parsed = propertyUpdateSchema.parse(req.body);
     const priceUnit = parsed.listingPurpose === 'rent' ? 'monthly' : 'total';
-    const status = req.body.status && ['active', 'pending', 'sold', 'rented', 'archived'].includes(req.body.status)
-      ? req.body.status
-      : undefined;
+    const status = parsed.status;
 
     withTransaction((tx) => {
       tx.prepare(

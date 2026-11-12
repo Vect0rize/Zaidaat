@@ -7,8 +7,14 @@ import { useToast } from '../lib/toastContext';
 import type { ProfessionalCategory, ProfessionalProfile } from '../types';
 import { Avatar } from '../components/common/Avatar';
 import { LocationSelector } from '../components/common/LocationSelector';
+import { usePageMeta } from '../lib/seo';
 
 export function BecomeProfessionalPage() {
+  usePageMeta({
+    title: 'Register as a Verified Professional or Contractor — ZAIDAAT',
+    description: 'Create your ZAIDAAT contractor or trade specialist profile and receive direct client leads across India.',
+    canonicalPath: '/become-professional',
+  });
   const { user, loading: authLoading, refreshUser } = useAuth();
   const navigate = useNavigate();
   const toast = useToast();
@@ -82,6 +88,8 @@ export function BecomeProfessionalPage() {
     try {
       const files = await uploadFiles(e.target.files);
       if (files[0]) setPhotoUrl(files[0].url);
+    } catch (err: any) {
+      toast.error(err?.message || 'Could not upload profile photo.');
     } finally {
       setUploading(false);
     }

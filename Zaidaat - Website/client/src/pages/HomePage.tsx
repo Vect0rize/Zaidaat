@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   ArrowRight,
@@ -9,9 +9,11 @@ import {
   FileCheck2,
   Lock,
   MapPin,
+  RotateCcw,
   Search,
 } from 'lucide-react';
 import { api } from '../lib/api';
+import { usePageMeta } from '../lib/seo';
 import { TradeIcon } from '../components/common/TradeIcon';
 import type { JobPost, ProfessionalCategory, ProfessionalProfile, Property } from '../types';
 import { PropertyCard } from '../components/property/PropertyCard';
@@ -24,6 +26,12 @@ import {
 } from '../components/common/Skeleton';
 
 export function HomePage() {
+  usePageMeta({
+    title: 'ZAIDAAT — All-India Property & Verified Construction Trade Marketplace',
+    description:
+      'Buy, sell, or rent flats, houses, residential plots, and commercial real estate across India with free listings, or hire verified contractors and architects.',
+    canonicalPath: '/',
+  });
   const navigate = useNavigate();
   const [heroTab, setHeroTab] = useState<'buy' | 'rent' | 'professionals' | 'work'>('buy');
   const [propertyFilterTab, setPropertyFilterTab] = useState<'all' | 'buy' | 'rent'>('all');
@@ -37,8 +45,11 @@ export function HomePage() {
   const [categories, setCategories] = useState<ProfessionalCategory[]>([]);
   const [jobs, setJobs] = useState<JobPost[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
 
-  useEffect(() => {
+  const loadHomeData = useCallback(() => {
+    setLoading(true);
+    setLoadError('');
     Promise.all([
       api.get<{ properties: Property[] }>('/api/properties?limit=9&sort=newest'),
       api.get<{ professionals: ProfessionalProfile[] }>('/api/professionals?limit=6'),
@@ -51,8 +62,15 @@ export function HomePage() {
         setCategories(catRes.categories);
         setJobs(jobRes.jobs);
       })
+      .catch((err: any) => {
+        setLoadError(err?.message || 'Unable to load marketplace data. Please try again.');
+      })
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    loadHomeData();
+  }, [loadHomeData]);
 
   useEffect(() => {
     if (searchCity.trim().length < 2) {
@@ -287,6 +305,18 @@ export function HomePage() {
           </div>
         </div>
       </section>
+
+      {loadError && (
+        <div className="mx-auto max-w-7xl px-4 pt-6 sm:px-6 lg:px-8">
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
+            <span>{loadError}</span>
+            <button type="button" onClick={loadHomeData} className="btn-secondary px-3 py-1.5 text-xs">
+              <RotateCcw className="h-3.5 w-3.5" />
+              Retry
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* 2. Skilled Trade Directory (Visual Service Catalog) */}
       <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">

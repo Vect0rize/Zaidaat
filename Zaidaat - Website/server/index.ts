@@ -8,7 +8,7 @@ import { config } from './config.js';
 import { runMigrations } from './db/migrate.js';
 import { ensureSeedMedia } from './db/seedMedia.js';
 import { seedDatabase } from './db/seed.js';
-import { closeDb } from './db/connection.js';
+import { closeDb, getDb } from './db/connection.js';
 import { apiRateLimiter } from './middleware/rateLimit.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { healthRouter } from './routes/health.js';
@@ -61,7 +61,21 @@ export function createApp() {
   app.use(
     helmet({
       crossOriginResourcePolicy: { policy: 'cross-origin' },
-      contentSecurityPolicy: false,
+      contentSecurityPolicy: {
+        useDefaults: true,
+        directives: {
+          defaultSrc: ["'self'"],
+          scriptSrc: config.isProd ? ["'self'"] : ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+          styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+          fontSrc: ["'self'", 'https://fonts.gstatic.com', 'data:'],
+          imgSrc: ["'self'", 'data:', 'blob:', 'https:'],
+          mediaSrc: ["'self'", 'blob:', 'https:'],
+          connectSrc: ["'self'", 'https://oauth2.googleapis.com', 'https://accounts.google.com'],
+          frameAncestors: ["'self'"],
+          objectSrc: ["'none'"],
+          baseUri: ["'self'"],
+        },
+      },
     })
   );
   app.use((req, res, next) =>
@@ -134,6 +148,71 @@ export function createApp() {
 
   app.use('/api/*', (_req, res) => {
     res.status(404).json({ error: 'API route not found' });
+  });
+
+  // SEO: robots.txt & dynamic XML sitemap
+  app.get('/robots.txt', (req, res) => {
+    const baseUrl = (config.google.hasExplicitAppUrl ? config.appUrl : `${req.protocol}://${req.get('host') || 'localhost:3000'}`).replace(/\/+$/, '');
+    res.type('text/plain').send(
+      [
+        'User-agent: *',
+        'Allow: /',
+        'Allow: /buy',
+        'Allow: /rent',
+        'Allow: /properties/',
+        'Allow: /professionals',
+        'Allow: /find-work',
+        'Allow: /plans',
+        'Disallow: /admin',
+        'Disallow: /dashboard',
+        'Disallow: /messages',
+        'Disallow: /notifications',
+        'Disallow: /api/',
+        `Sitemap: ${baseUrl}/sitemap.xml`,
+      ].join('\n')
+    );
+  });
+
+  app.get('/sitemap.xml', (req, res) => {
+    const baseUrl = (config.google.hasExplicitAppUrl ? config.appUrl : `${req.protocol}://${req.get('host') || 'localhost:3000'}`).replace(/\/+$/, '');
+    const escapeXml = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const staticPaths = ['/', '/buy', '/rent', '/sell', '/professionals', '/find-work', '/plans'];
+    const urls: Array<{ loc: string; priority: string; changefreq: string }> = staticPaths.map((p) => ({
+      loc: `${baseUrl}${p}`,
+      priority: p === '/' ? '1.0' : '0.8',
+      changefreq: 'daily',
+    }));
+
+    try {
+      const db = getDb();
+      const props = db.prepare(`SELECT id FROM properties WHERE status = 'active' ORDER BY id DESC LIMIT 200`).all() as Array<{ id: number }>;
+      for (const p of props) {
+        urls.push({ loc: `${baseUrl}/properties/${p.id}`, priority: '0.7', changefreq: 'weekly' });
+      }
+      const pros = db
+        .prepare(`SELECT id FROM professional_profiles WHERE verification_status = 'verified' ORDER BY id DESC LIMIT 200`)
+        .all() as Array<{ id: number }>;
+      for (const pr of pros) {
+        urls.push({ loc: `${baseUrl}/professionals/${pr.id}`, priority: '0.7', changefreq: 'weekly' });
+      }
+      const jobs = db.prepare(`SELECT id FROM job_posts WHERE status = 'open' ORDER BY id DESC LIMIT 100`).all() as Array<{ id: number }>;
+      for (const j of jobs) {
+        urls.push({ loc: `${baseUrl}/jobs/${j.id}`, priority: '0.6', changefreq: 'daily' });
+      }
+    } catch {
+      // ignore db read errors during early boot
+    }
+
+    const xml = [
+      '<?xml version="1.0" encoding="UTF-8"?>',
+      '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+      ...urls.map(
+        (u) =>
+          `  <url><loc>${escapeXml(u.loc)}</loc><changefreq>${u.changefreq}</changefreq><priority>${u.priority}</priority></url>`
+      ),
+      '</urlset>',
+    ].join('\n');
+    res.type('application/xml').send(xml);
   });
 
   // In production or single-server mode, serve built client static files from client/dist

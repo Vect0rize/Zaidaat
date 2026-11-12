@@ -92,6 +92,27 @@ messagesRouter.post('/', requireAuth, (req, res, next) => {
       return;
     }
 
+    if (parsed.contextType === 'project' && parsed.contextId) {
+      const proj = db
+        .prepare(`SELECT id, customer_id FROM projects WHERE id = ?`)
+        .get(parsed.contextId) as { id: number; customer_id: number } | undefined;
+      if (!proj) {
+        res.status(404).json({ error: 'Project not found.' });
+        return;
+      }
+      const isProjectPro = db
+        .prepare(
+          `SELECT prp.id FROM project_professionals prp
+           JOIN professional_profiles pp ON pp.id = prp.professional_id
+           WHERE prp.project_id = ? AND pp.user_id = ? AND prp.status != 'removed'`
+        )
+        .get(parsed.contextId, uid);
+      if (proj.customer_id !== uid && !isProjectPro && !req.user!.roles.includes('admin')) {
+        res.status(403).json({ error: 'Not authorized to message in this project context.' });
+        return;
+      }
+    }
+
     const minId = Math.min(uid, parsed.recipientId);
     const maxId = Math.max(uid, parsed.recipientId);
     const threadKey =

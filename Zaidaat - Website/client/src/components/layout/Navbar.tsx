@@ -50,6 +50,15 @@ export function Navbar() {
     };
   }, [userMenuOpen]);
 
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const onEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setMobileOpen(false);
+    };
+    document.addEventListener('keydown', onEsc);
+    return () => document.removeEventListener('keydown', onEsc);
+  }, [mobileOpen]);
+
   const handleLogout = async () => {
     setUserMenuOpen(false);
     setMobileOpen(false);
@@ -274,6 +283,7 @@ export function Navbar() {
             onClick={() => setMobileOpen((v) => !v)}
             className="rounded-lg p-2 text-slate-700 hover:bg-slate-100 lg:hidden"
             aria-label="Toggle navigation menu"
+            aria-expanded={mobileOpen}
           >
             {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>

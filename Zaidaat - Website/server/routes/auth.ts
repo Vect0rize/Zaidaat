@@ -11,10 +11,11 @@ import {
   setAuthCookie,
 } from '../middleware/auth.js';
 import { authRateLimiter, otpRateLimiter } from '../middleware/rateLimit.js';
-import { cleanOptionalText, cleanText } from '../utils/sanitize.js';
+import { cleanOptionalText, cleanText, sanitizeMediaUrl } from '../utils/sanitize.js';
 import {
   forgotPasswordSchema,
   loginSchema,
+  optionalSafeMediaUrlSchema,
   phoneOtpSendSchema,
   phoneOtpVerifySchema,
   registerSchema,
@@ -236,7 +237,7 @@ authRouter.patch('/me', requireAuth, (req, res, next) => {
   try {
     const schema = z.object({
       fullName: z.string().trim().min(2).max(120).optional(),
-      avatarUrl: z.string().trim().max(300).optional().nullable(),
+      avatarUrl: optionalSafeMediaUrlSchema,
       defaultState: z.string().trim().max(80).optional().nullable(),
       defaultCity: z.string().trim().max(80).optional().nullable(),
       defaultLocality: z.string().trim().max(120).optional().nullable(),
@@ -246,7 +247,7 @@ authRouter.patch('/me', requireAuth, (req, res, next) => {
     db.prepare(
       `UPDATE users
        SET full_name = COALESCE(?, full_name),
-           avatar_url = COALESCE(?, avatar_url),
+           avatar_url = ?,
            default_state = ?,
            default_city = ?,
            default_locality = ?,
@@ -254,7 +255,7 @@ authRouter.patch('/me', requireAuth, (req, res, next) => {
        WHERE id = ?`
     ).run(
       parsed.fullName ? cleanText(parsed.fullName, 120) : null,
-      parsed.avatarUrl !== undefined ? cleanOptionalText(parsed.avatarUrl, 300) : null,
+      parsed.avatarUrl !== undefined ? sanitizeMediaUrl(parsed.avatarUrl, 300) : req.user!.avatarUrl,
       parsed.defaultState !== undefined ? cleanOptionalText(parsed.defaultState, 80) : req.user!.defaultState,
       parsed.defaultCity !== undefined ? cleanOptionalText(parsed.defaultCity, 80) : req.user!.defaultCity,
       parsed.defaultLocality !== undefined
@@ -361,10 +362,23 @@ authRouter.post('/otp/send', otpRateLimiter, (req, res, next) => {
       return;
     }
 
-    const code = String(crypto.randomInt(100000, 999999));
+    const db = getDb();
+    const recentCount = (
+      db
+        .prepare(
+          `SELECT COUNT(*) as cnt FROM otp_codes
+           WHERE phone = ? AND created_at >= datetime('now', '-10 minutes')`
+        )
+        .get(phone) as { cnt: number }
+    ).cnt;
+    if (recentCount >= 4) {
+      res.status(429).json({ error: 'Too many OTP requests for this phone number. Please wait 10 minutes.' });
+      return;
+    }
+
+    const code = String(crypto.randomInt(100000, 1000000));
     const codeHash = hashToken(code);
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
-    const db = getDb();
 
     db.prepare(`INSERT INTO otp_codes (phone, code_hash, expires_at) VALUES (?, ?, ?)`).run(
       phone,
@@ -579,7 +593,7 @@ authRouter.get('/google/callback', async (req, res, next) => {
       picture?: string;
     };
 
-    if (!profile.email || !profile.id || profile.verified_email === false) {
+    if (!profile.email || !profile.id || profile.verified_email !== true) {
       res.redirect(`${appUrl}/login?error=google_profile_incomplete`);
       return;
     }
@@ -612,7 +626,7 @@ authRouter.get('/google/callback', async (req, res, next) => {
           .run(
             cleanText(profile.name || 'Google User', 120),
             cleanText(profile.email!.toLowerCase(), 160),
-            cleanOptionalText(profile.picture, 300),
+            sanitizeMediaUrl(profile.picture, 300),
             profile.id!
           );
         const uid = Number(ins.lastInsertRowid);

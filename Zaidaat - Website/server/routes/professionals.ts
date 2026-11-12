@@ -2,7 +2,15 @@ import { Router } from 'express';
 import { getDb, withTransaction } from '../db/connection.js';
 import { optionalAuth, requireAuth } from '../middleware/auth.js';
 import { createNotification } from '../utils/notifications.js';
-import { cleanOptionalText, cleanText, safeJsonParse, sanitizeMediaUrl } from '../utils/sanitize.js';
+import {
+  cleanOptionalText,
+  cleanText,
+  parseNonNegativeNumber,
+  parsePagination,
+  parsePositiveInt,
+  safeJsonParse,
+  sanitizeMediaUrl,
+} from '../utils/sanitize.js';
 import {
   portfolioCreateSchema,
   professionalProfileSchema,
@@ -65,18 +73,17 @@ professionalsRouter.get('/', optionalAuth, (req, res) => {
   const db = getDb();
   const q = cleanText(String(req.query.q || ''), 120);
   const categorySlug = cleanText(String(req.query.category || ''), 80);
-  const categoryId = Number(req.query.categoryId || 0);
+  const categoryId = parsePositiveInt(req.query.categoryId) || 0;
   const state = cleanText(String(req.query.state || ''), 80);
   const city = cleanText(String(req.query.city || ''), 80);
   const locality = cleanText(String(req.query.locality || ''), 100);
   const availability = String(req.query.availability || '');
-  const minExperience = Number(req.query.minExperience || 0);
-  const minRating = Number(req.query.minRating || 0);
-  const maxRate = Number(req.query.maxRate || 0);
+  const minExperience = Math.floor(parseNonNegativeNumber(req.query.minExperience));
+  const minRating = parseNonNegativeNumber(req.query.minRating);
+  const maxRate = parseNonNegativeNumber(req.query.maxRate);
   const verifiedOnly = req.query.verifiedOnly === 'true';
   const sort = String(req.query.sort || 'rating');
-  const limit = Math.min(Number(req.query.limit || 24), 60);
-  const offset = Math.max(Number(req.query.offset || 0), 0);
+  const { limit, offset } = parsePagination(req.query.limit, req.query.offset, 60, 24);
 
   const conditions: string[] = [`u.is_active = 1`];
   const params: Array<string | number> = [];

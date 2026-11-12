@@ -8,14 +8,21 @@ import { LocationSelector } from '../components/common/LocationSelector';
 import { JobCard } from '../components/work/JobCard';
 import { EmptyState } from '../components/common/EmptyState';
 import { JobCardSkeleton } from '../components/common/Skeleton';
+import { usePageMeta } from '../lib/seo';
 
 export function FindWorkPage() {
+  usePageMeta({
+    title: 'Open Construction & Home Service Tenders — Find Work on ZAIDAAT',
+    description: 'Browse verified residential and commercial work tenders across India and submit itemized quotes directly.',
+    canonicalPath: '/find-work',
+  });
   const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const [categories, setCategories] = useState<ProfessionalCategory[]>([]);
   const [jobs, setJobs] = useState<JobPost[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
   const [viewMode, setViewMode] = useState<'all' | 'saved'>('all');
 
   const [categorySlug, setCategorySlug] = useState(searchParams.get('category') || '');
@@ -23,6 +30,13 @@ export function FindWorkPage() {
   const [cityVal, setCityVal] = useState(searchParams.get('city') || '');
   const [status, setStatus] = useState('open');
   const [q, setQ] = useState(searchParams.get('q') || '');
+
+  useEffect(() => {
+    setCategorySlug(searchParams.get('category') || '');
+    setStateVal(searchParams.get('state') || '');
+    setCityVal(searchParams.get('city') || '');
+    setQ(searchParams.get('q') || '');
+  }, [searchParams]);
 
   useEffect(() => {
     api
@@ -33,6 +47,7 @@ export function FindWorkPage() {
 
   const loadJobs = useCallback(async () => {
     setLoading(true);
+    setLoadError('');
     try {
       if (viewMode === 'saved' && user) {
         const res = await api.get<{ jobs: JobPost[] }>('/api/work/jobs/saved');
@@ -49,6 +64,8 @@ export function FindWorkPage() {
         setJobs(res.jobs);
         setTotal(res.total);
       }
+    } catch (err: any) {
+      setLoadError(err?.message || 'Unable to load work tenders right now.');
     } finally {
       setLoading(false);
     }
@@ -195,6 +212,15 @@ export function FindWorkPage() {
 
       {/* Structured Tender Board List */}
       <div className="mt-5">
+        {loadError && (
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
+            <span>{loadError}</span>
+            <button type="button" onClick={loadJobs} className="btn-secondary px-3 py-1.5 text-xs">
+              <RotateCcw className="h-3.5 w-3.5" />
+              Retry
+            </button>
+          </div>
+        )}
         {loading ? (
           <div className="grid gap-4 md:grid-cols-2">
             {[1, 2, 3, 4].map((n) => (

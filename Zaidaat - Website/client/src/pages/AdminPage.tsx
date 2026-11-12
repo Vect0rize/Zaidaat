@@ -20,6 +20,7 @@ import { api } from '../lib/api';
 import { useAuth } from '../lib/authContext';
 import { useToast } from '../lib/toastContext';
 import { formatDate, formatINR } from '../lib/format';
+import { usePageMeta } from '../lib/seo';
 
 type AdminSection =
   | 'overview'
@@ -34,6 +35,11 @@ type AdminSection =
   | 'audit';
 
 export function AdminPage() {
+  usePageMeta({
+    title: 'Admin Operations Desk — ZAIDAAT',
+    description: 'Platform moderation, KYC verification queue, analytics, and audit console.',
+    canonicalPath: '/admin',
+  });
   const { user, loading: authLoading } = useAuth();
   const toast = useToast();
   const [section, setSection] = useState<AdminSection>('overview');
@@ -51,30 +57,35 @@ export function AdminPage() {
   const [newCatName, setNewCatName] = useState('');
   const [newCatGroup, setNewCatGroup] = useState('Home Services');
   const [newCatDesc, setNewCatDesc] = useState('');
+  const [creatingCat, setCreatingCat] = useState(false);
 
   const loadAll = useCallback(async () => {
     if (!user?.roles.includes('admin')) return;
-    const [aRes, uRes, pRes, proRes, jobRes, vRes, cRes, compRes, auditRes] = await Promise.all([
-      api.get('/api/admin/analytics'),
-      api.get<{ users: any[] }>('/api/admin/users'),
-      api.get<{ properties: any[] }>('/api/admin/properties'),
-      api.get<{ professionals: any[] }>('/api/admin/professionals'),
-      api.get<{ jobs: any[] }>('/api/admin/jobs'),
-      api.get<{ records: any[] }>('/api/admin/verifications'),
-      api.get<{ categories: any[] }>('/api/admin/categories'),
-      api.get<{ complaints: any[] }>('/api/admin/complaints'),
-      api.get<{ logs: any[] }>('/api/admin/audit-logs').catch(() => ({ logs: [] })),
-    ]);
-    setAnalytics(aRes);
-    setUsers(uRes.users);
-    setProperties(pRes.properties);
-    setProfessionals(proRes.professionals);
-    setJobs(jobRes.jobs);
-    setVerifications(vRes.records);
-    setCategories(cRes.categories);
-    setComplaints(compRes.complaints);
-    setAuditLogs(auditRes.logs);
-  }, [user]);
+    try {
+      const [aRes, uRes, pRes, proRes, jobRes, vRes, cRes, compRes, auditRes] = await Promise.all([
+        api.get('/api/admin/analytics'),
+        api.get<{ users: any[] }>('/api/admin/users'),
+        api.get<{ properties: any[] }>('/api/admin/properties'),
+        api.get<{ professionals: any[] }>('/api/admin/professionals'),
+        api.get<{ jobs: any[] }>('/api/admin/jobs'),
+        api.get<{ records: any[] }>('/api/admin/verifications'),
+        api.get<{ categories: any[] }>('/api/admin/categories'),
+        api.get<{ complaints: any[] }>('/api/admin/complaints'),
+        api.get<{ logs: any[] }>('/api/admin/audit-logs').catch(() => ({ logs: [] })),
+      ]);
+      setAnalytics(aRes);
+      setUsers(uRes.users);
+      setProperties(pRes.properties);
+      setProfessionals(proRes.professionals);
+      setJobs(jobRes.jobs);
+      setVerifications(vRes.records);
+      setCategories(cRes.categories);
+      setComplaints(compRes.complaints);
+      setAuditLogs(auditRes.logs);
+    } catch (err: any) {
+      toast.error(err?.message || 'Unable to load admin operations data.');
+    }
+  }, [user, toast]);
 
   useEffect(() => {
     if (!authLoading) loadAll();
@@ -334,9 +345,13 @@ export function AdminPage() {
                         <button
                           type="button"
                           onClick={async () => {
-                            await api.patch(`/api/admin/users/${u.id}`, { isActive: !u.is_active });
-                            toast.success(`User ${u.is_active ? 'suspended' : 'activated'}.`);
-                            loadAll();
+                            try {
+                              await api.patch(`/api/admin/users/${u.id}`, { isActive: !u.is_active });
+                              toast.success(`User ${u.is_active ? 'suspended' : 'activated'}.`);
+                              loadAll();
+                            } catch (err: any) {
+                              toast.error(err?.message || 'Unable to update user status.');
+                            }
                           }}
                           className="btn-secondary px-3 py-1 text-xs"
                         >
@@ -367,9 +382,13 @@ export function AdminPage() {
                     <button
                       type="button"
                       onClick={async () => {
-                        await api.patch(`/api/admin/properties/${p.id}`, { isFeatured: !p.is_featured });
-                        toast.success(p.is_featured ? 'Removed featured badge.' : 'Marked as Featured!');
-                        loadAll();
+                        try {
+                          await api.patch(`/api/admin/properties/${p.id}`, { isFeatured: !p.is_featured });
+                          toast.success(p.is_featured ? 'Removed featured badge.' : 'Marked as Featured!');
+                          loadAll();
+                        } catch (err: any) {
+                          toast.error(err?.message || 'Unable to update property feature state.');
+                        }
                       }}
                       className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
                         p.is_featured ? 'bg-amber-100 text-amber-800' : 'border border-slate-200 text-slate-600 hover:bg-slate-50'
@@ -378,11 +397,16 @@ export function AdminPage() {
                       {p.is_featured ? 'Featured ★' : 'Feature'}
                     </button>
                     <select
+                      aria-label={`Status for ${p.title}`}
                       value={p.status}
                       onChange={async (e) => {
-                        await api.patch(`/api/admin/properties/${p.id}`, { status: e.target.value });
-                        toast.success(`Listing marked ${e.target.value}.`);
-                        loadAll();
+                        try {
+                          await api.patch(`/api/admin/properties/${p.id}`, { status: e.target.value });
+                          toast.success(`Listing marked ${e.target.value}.`);
+                          loadAll();
+                        } catch (err: any) {
+                          toast.error(err?.message || 'Unable to update property status.');
+                        }
                       }}
                       className="input-field w-32 py-1.5 text-xs font-semibold"
                     >
@@ -466,11 +490,16 @@ export function AdminPage() {
                     </p>
                   </div>
                   <select
+                    aria-label={`Status for job ${j.title}`}
                     value={j.status}
                     onChange={async (e) => {
-                      await api.patch(`/api/admin/jobs/${j.id}`, { status: e.target.value });
-                      toast.success(`Job status updated to ${e.target.value}.`);
-                      loadAll();
+                      try {
+                        await api.patch(`/api/admin/jobs/${j.id}`, { status: e.target.value });
+                        toast.success(`Job status updated to ${e.target.value}.`);
+                        loadAll();
+                      } catch (err: any) {
+                        toast.error(err?.message || 'Unable to update job status.');
+                      }
                     }}
                     className="input-field w-36 py-1.5 text-xs font-semibold"
                   >
@@ -513,12 +542,16 @@ export function AdminPage() {
                         <button
                           type="button"
                           onClick={async () => {
-                            await api.patch(`/api/admin/verifications/${v.id}`, {
-                              status: 'verified',
-                              adminNotes: 'Verified by Admin desk',
-                            });
-                            toast.success('Professional KYC approved.');
-                            loadAll();
+                            try {
+                              await api.patch(`/api/admin/verifications/${v.id}`, {
+                                status: 'verified',
+                                adminNotes: 'Verified by Admin desk',
+                              });
+                              toast.success('Professional KYC approved.');
+                              loadAll();
+                            } catch (err: any) {
+                              toast.error(err?.message || 'Unable to approve verification.');
+                            }
                           }}
                           className="btn-primary px-3 py-1.5 text-xs"
                         >
@@ -527,12 +560,16 @@ export function AdminPage() {
                         <button
                           type="button"
                           onClick={async () => {
-                            await api.patch(`/api/admin/verifications/${v.id}`, {
-                              status: 'rejected',
-                              adminNotes: 'Document unclear; please re-upload.',
-                            });
-                            toast.info('Verification marked rejected.');
-                            loadAll();
+                            try {
+                              await api.patch(`/api/admin/verifications/${v.id}`, {
+                                status: 'rejected',
+                                adminNotes: 'Document unclear; please re-upload.',
+                              });
+                              toast.info('Verification marked rejected.');
+                              loadAll();
+                            } catch (err: any) {
+                              toast.error(err?.message || 'Unable to reject verification.');
+                            }
                           }}
                           className="inline-flex items-center gap-1 rounded-lg border border-rose-200 px-3 py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-50"
                         >
@@ -569,17 +606,22 @@ export function AdminPage() {
                         </span>
                         <p className="mt-1 font-bold text-slate-900">{c.reason}</p>
                         <p className="text-xs text-slate-600">{c.details}</p>
-                        <p className="mt-1 text-xs text-slate-400">Reported by: {c.reporter_name}</p>
+                        <p className="mt-1 text-xs text-slate-500">Reported by: {c.reporter_name}</p>
                       </div>
                       <select
+                        aria-label={`Status for report ${c.id}`}
                         value={c.status}
                         onChange={async (e) => {
-                          await api.patch(`/api/admin/complaints/${c.id}`, {
-                            status: e.target.value,
-                            adminResolution: `Marked ${e.target.value} by admin.`,
-                          });
-                          toast.success(`Report marked ${e.target.value}.`);
-                          loadAll();
+                          try {
+                            await api.patch(`/api/admin/complaints/${c.id}`, {
+                              status: e.target.value,
+                              adminResolution: `Marked ${e.target.value} by admin.`,
+                            });
+                            toast.success(`Report marked ${e.target.value}.`);
+                            loadAll();
+                          } catch (err: any) {
+                            toast.error(err?.message || 'Unable to update report status.');
+                          }
                         }}
                         className="input-field w-40 py-1.5 text-xs font-semibold"
                       >
@@ -644,15 +686,23 @@ export function AdminPage() {
                 <form
                   onSubmit={async (e) => {
                     e.preventDefault();
-                    await api.post('/api/admin/categories', {
-                      name: newCatName,
-                      groupName: newCatGroup,
-                      description: newCatDesc,
-                    });
-                    setNewCatName('');
-                    setNewCatDesc('');
-                    toast.success('New trade category added.');
-                    loadAll();
+                    if (creatingCat) return;
+                    setCreatingCat(true);
+                    try {
+                      await api.post('/api/admin/categories', {
+                        name: newCatName,
+                        groupName: newCatGroup,
+                        description: newCatDesc,
+                      });
+                      setNewCatName('');
+                      setNewCatDesc('');
+                      toast.success('New trade category added.');
+                      loadAll();
+                    } catch (err: any) {
+                      toast.error(err?.message || 'Unable to create trade category.');
+                    } finally {
+                      setCreatingCat(false);
+                    }
                   }}
                   className="card space-y-3 p-6 lg:col-span-4"
                 >
@@ -663,6 +713,7 @@ export function AdminPage() {
                     type="text"
                     required
                     placeholder="Category Name (e.g. Solar Installers)"
+                    aria-label="Category Name"
                     value={newCatName}
                     onChange={(e) => setNewCatName(e.target.value)}
                     className="input-field"
@@ -671,6 +722,7 @@ export function AdminPage() {
                     type="text"
                     required
                     placeholder="Group (e.g. Electrical & Smart Home)"
+                    aria-label="Category Group"
                     value={newCatGroup}
                     onChange={(e) => setNewCatGroup(e.target.value)}
                     className="input-field"
@@ -679,12 +731,13 @@ export function AdminPage() {
                     rows={3}
                     required
                     placeholder="Description"
+                    aria-label="Category Description"
                     value={newCatDesc}
                     onChange={(e) => setNewCatDesc(e.target.value)}
                     className="input-field"
                   />
-                  <button type="submit" className="btn-primary w-full text-xs">
-                    <PlusCircle className="h-4 w-4" /> Create Category
+                  <button type="submit" disabled={creatingCat} className="btn-primary w-full text-xs">
+                    <PlusCircle className="h-4 w-4" /> {creatingCat ? 'Creating...' : 'Create Category'}
                   </button>
                 </form>
 
@@ -700,9 +753,13 @@ export function AdminPage() {
                         <button
                           type="button"
                           onClick={async () => {
-                            await api.patch(`/api/admin/categories/${c.id}`, { isActive: !c.is_active });
-                            toast.info(`Category ${c.is_active ? 'disabled' : 'enabled'}.`);
-                            loadAll();
+                            try {
+                              await api.patch(`/api/admin/categories/${c.id}`, { isActive: !c.is_active });
+                              toast.info(`Category ${c.is_active ? 'disabled' : 'enabled'}.`);
+                              loadAll();
+                            } catch (err: any) {
+                              toast.error(err?.message || 'Unable to update category status.');
+                            }
                           }}
                           className={`rounded-lg px-3 py-1 text-xs font-bold ${
                             c.is_active ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'

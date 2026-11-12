@@ -74,3 +74,27 @@ export function sanitizeMediaUrl(input: string | null | undefined, maxLen = 400)
   return null;
 }
 
+export function parsePagination(
+  rawLimit: unknown,
+  rawOffset: unknown,
+  maxLimit = 60,
+  defaultLimit = 24
+): { limit: number; offset: number } {
+  const l = Number(rawLimit);
+  const o = Number(rawOffset);
+  const limit = Number.isFinite(l) && l >= 1 ? Math.min(Math.floor(l), maxLimit) : defaultLimit;
+  const offset = Number.isFinite(o) && o >= 0 ? Math.floor(o) : 0;
+  return { limit, offset };
+}
+
+export function parsePositiveInt(raw: unknown): number | null {
+  const n = Number(raw);
+  return Number.isInteger(n) && n > 0 ? n : null;
+}
+
+export function parseNonNegativeNumber(raw: unknown): number {
+  const n = Number(raw);
+  return Number.isFinite(n) && n > 0 ? n : 0;
+}
+
+

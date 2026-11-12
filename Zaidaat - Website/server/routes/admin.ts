@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { getDb, withTransaction } from '../db/connection.js';
 import { requireAuth, requireRole, type UserRole } from '../middleware/auth.js';
 import { createNotification } from '../utils/notifications.js';
-import { cleanOptionalText, cleanText } from '../utils/sanitize.js';
+import { cleanOptionalText, cleanText, parsePositiveInt } from '../utils/sanitize.js';
 import { z } from 'zod';
 
 export const adminRouter = Router();
@@ -183,24 +183,34 @@ adminRouter.get('/properties', (_req, res) => {
 
 adminRouter.patch('/properties/:id', (req, res, next) => {
   try {
-    const id = Number(req.params.id);
+    const id = parsePositiveInt(req.params.id);
+    if (!id) {
+      res.status(400).json({ error: 'Invalid property ID.' });
+      return;
+    }
     const schema = z.object({
       status: z.enum(['active', 'pending', 'sold', 'rented', 'archived']).optional(),
       isFeatured: z.boolean().optional(),
     });
     const parsed = schema.parse(req.body);
     const db = getDb();
-    db.prepare(
-      `UPDATE properties
-       SET status = COALESCE(?, status),
-           is_featured = COALESCE(?, is_featured),
-           updated_at = datetime('now')
-       WHERE id = ?`
-    ).run(
-      parsed.status ?? null,
-      parsed.isFeatured !== undefined ? (parsed.isFeatured ? 1 : 0) : null,
-      id
-    );
+    const upd = db
+      .prepare(
+        `UPDATE properties
+         SET status = COALESCE(?, status),
+             is_featured = COALESCE(?, is_featured),
+             updated_at = datetime('now')
+         WHERE id = ?`
+      )
+      .run(
+        parsed.status ?? null,
+        parsed.isFeatured !== undefined ? (parsed.isFeatured ? 1 : 0) : null,
+        id
+      );
+    if (upd.changes === 0) {
+      res.status(404).json({ error: 'Property not found.' });
+      return;
+    }
     writeAuditLog(
       db,
       req.user!.id,
@@ -333,14 +343,22 @@ adminRouter.post('/categories', (req, res, next) => {
 
 adminRouter.patch('/categories/:id', (req, res, next) => {
   try {
-    const id = Number(req.params.id);
+    const id = parsePositiveInt(req.params.id);
+    if (!id) {
+      res.status(400).json({ error: 'Invalid category ID.' });
+      return;
+    }
     const schema = z.object({ isActive: z.boolean() });
     const parsed = schema.parse(req.body);
     const db = getDb();
-    db.prepare(`UPDATE professional_categories SET is_active = ? WHERE id = ?`).run(
+    const upd = db.prepare(`UPDATE professional_categories SET is_active = ? WHERE id = ?`).run(
       parsed.isActive ? 1 : 0,
       id
     );
+    if (upd.changes === 0) {
+      res.status(404).json({ error: 'Category not found.' });
+      return;
+    }
     writeAuditLog(db, req.user!.id, 'category_toggle', 'category', id, { isActive: parsed.isActive }, req.ip);
     res.json({ ok: true });
   } catch (err) {
@@ -363,23 +381,33 @@ adminRouter.get('/complaints', (_req, res) => {
 
 adminRouter.patch('/complaints/:id', (req, res, next) => {
   try {
-    const id = Number(req.params.id);
+    const id = parsePositiveInt(req.params.id);
+    if (!id) {
+      res.status(400).json({ error: 'Invalid report ID.' });
+      return;
+    }
     const schema = z.object({
       status: z.enum(['open', 'investigating', 'resolved', 'dismissed']),
       adminResolution: z.string().trim().max(1000).optional(),
     });
     const parsed = schema.parse(req.body);
     const db = getDb();
-    db.prepare(
-      `UPDATE complaints_reports
-       SET status = ?, admin_resolution = COALESCE(?, admin_resolution), resolved_by = ?, updated_at = datetime('now')
-       WHERE id = ?`
-    ).run(
-      parsed.status,
-      parsed.adminResolution ? cleanText(parsed.adminResolution, 1000) : null,
-      req.user!.id,
-      id
-    );
+    const upd = db
+      .prepare(
+        `UPDATE complaints_reports
+         SET status = ?, admin_resolution = COALESCE(?, admin_resolution), resolved_by = ?, updated_at = datetime('now')
+         WHERE id = ?`
+      )
+      .run(
+        parsed.status,
+        parsed.adminResolution ? cleanText(parsed.adminResolution, 1000) : null,
+        req.user!.id,
+        id
+      );
+    if (upd.changes === 0) {
+      res.status(404).json({ error: 'Report not found.' });
+      return;
+    }
     writeAuditLog(
       db,
       req.user!.id,
@@ -430,13 +458,23 @@ adminRouter.get('/jobs', (_req, res) => {
 
 adminRouter.patch('/jobs/:id', (req, res, next) => {
   try {
-    const id = Number(req.params.id);
+    const id = parsePositiveInt(req.params.id);
+    if (!id) {
+      res.status(400).json({ error: 'Invalid job ID.' });
+      return;
+    }
     const schema = z.object({
       status: z.enum(['open', 'in_review', 'assigned', 'in_progress', 'completed', 'cancelled']),
     });
     const parsed = schema.parse(req.body);
     const db = getDb();
-    db.prepare(`UPDATE job_posts SET status = ?, updated_at = datetime('now') WHERE id = ?`).run(parsed.status, id);
+    const upd = db
+      .prepare(`UPDATE job_posts SET status = ?, updated_at = datetime('now') WHERE id = ?`)
+      .run(parsed.status, id);
+    if (upd.changes === 0) {
+      res.status(404).json({ error: 'Job post not found.' });
+      return;
+    }
     writeAuditLog(db, req.user!.id, 'job_moderation', 'job_post', id, { status: parsed.status }, req.ip);
     res.json({ ok: true });
   } catch (err) {

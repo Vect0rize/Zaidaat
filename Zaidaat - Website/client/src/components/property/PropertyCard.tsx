@@ -53,18 +53,21 @@ export function PropertyCard({ property, onToggleSave }: PropertyCardProps) {
 
   return (
     <article className="group flex flex-col overflow-hidden rounded-lg border border-slate-200 bg-white transition duration-150 hover:border-slate-300 hover:shadow-card">
-      <Link
-        to={`/properties/${property.id}`}
-        className="relative block aspect-[16/10] overflow-hidden bg-slate-100"
-      >
-        <img
-          src={primaryImg}
-          alt={property.title}
-          className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]"
-          loading="lazy"
-        />
+      <div className="relative aspect-[16/10] overflow-hidden bg-slate-100">
+        <Link
+          to={`/properties/${property.id}`}
+          className="block h-full w-full"
+          aria-label={`View ${property.title}`}
+        >
+          <img
+            src={primaryImg}
+            alt={property.title}
+            className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]"
+            loading="lazy"
+          />
+        </Link>
 
-        <div className="absolute right-2.5 top-2.5 flex items-center gap-1">
+        <div className="absolute right-2.5 top-2.5 z-10 flex items-center gap-1">
           <button
             type="button"
             onClick={handleCompare}
@@ -74,7 +77,7 @@ export function PropertyCard({ property, onToggleSave }: PropertyCardProps) {
                 : 'border-slate-200/80 bg-white/95 text-slate-700 hover:border-slate-300 hover:text-navy-900'
             }`}
             title={comparing ? 'Remove from Compare' : 'Compare Property'}
-            aria-label="Compare property"
+            aria-label={comparing ? `Remove ${property.title} from compare` : `Compare ${property.title}`}
           >
             <ArrowLeftRight className="h-3.5 w-3.5" />
           </button>
@@ -87,12 +90,12 @@ export function PropertyCard({ property, onToggleSave }: PropertyCardProps) {
                 : 'border-slate-200/80 bg-white/95 text-slate-700 hover:border-slate-300 hover:text-rose-600'
             }`}
             title={property.isSaved ? 'Saved' : 'Save Property'}
-            aria-label="Save property"
+            aria-label={property.isSaved ? `Unsave ${property.title}` : `Save ${property.title}`}
           >
             <Heart className={`h-3.5 w-3.5 ${property.isSaved ? 'fill-current' : ''}`} />
           </button>
         </div>
-      </Link>
+      </div>
 
       <div className="flex flex-1 flex-col p-4">
         <div className="flex items-center justify-between gap-2 text-[11px] font-medium text-slate-500">

@@ -19,6 +19,7 @@ import type { JobPost } from '../types';
 import { formatDate, formatINR } from '../lib/format';
 import { Modal } from '../components/common/Modal';
 import { DetailPageSkeleton } from '../components/common/Skeleton';
+import { usePageMeta } from '../lib/seo';
 
 export function JobDetailPage() {
   const { id } = useParams();
@@ -27,6 +28,14 @@ export function JobDetailPage() {
   const toast = useToast();
 
   const [job, setJob] = useState<JobPost | null>(null);
+  usePageMeta({
+    title: job ? `${job.title} — ${job.city} | ZAIDAAT` : 'Work Tender Details — ZAIDAAT',
+    description: job
+      ? `${job.title} in ${job.city}, ${job.state}. Submit itemized quotations or apply directly on ZAIDAAT.`
+      : 'View residential and commercial construction work tenders on ZAIDAAT.',
+    canonicalPath: id ? `/jobs/${id}` : undefined,
+    type: 'article',
+  });
   const [isOwner, setIsOwner] = useState(false);
   const [applications, setApplications] = useState<any[]>([]);
   const [quotations, setQuotations] = useState<any[]>([]);
@@ -240,16 +249,16 @@ export function JobDetailPage() {
             </div>
 
             <div className="mt-5 border-t border-slate-100 pt-5">
-              <h2 className="text-sm font-bold uppercase tracking-wider text-slate-400">Work Description</h2>
-              <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-slate-700">{job.description}</p>
+              <h2 className="text-sm font-bold uppercase tracking-wider text-slate-500">Work Description</h2>
+              <p className="mt-2 whitespace-pre-line break-words text-sm leading-relaxed text-slate-700">{job.description}</p>
             </div>
 
             {job.referenceImages.length > 0 && (
               <div className="mt-6 border-t border-slate-100 pt-5">
-                <h3 className="text-sm font-bold uppercase tracking-wider text-slate-400">Reference Photos</h3>
+                <h2 className="text-sm font-bold uppercase tracking-wider text-slate-500">Reference Photos</h2>
                 <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
                   {job.referenceImages.map((url, idx) => (
-                    <img key={url + idx} src={url} alt="" className="h-36 w-full rounded-xl border border-slate-200 object-cover" />
+                    <img key={url + idx} src={url} alt={`${job.title} reference photo ${idx + 1}`} className="h-36 w-full rounded-xl border border-slate-200 object-cover" />
                   ))}
                 </div>
               </div>
@@ -587,6 +596,7 @@ export function JobDetailPage() {
                   <button
                     type="button"
                     onClick={() => setLineItems((prev) => prev.filter((_, i) => i !== idx))}
+                    aria-label={`Remove line item ${idx + 1}`}
                     className="col-span-1 flex items-center justify-center text-slate-400 hover:text-rose-600"
                   >
                     <Trash2 className="h-4 w-4" />

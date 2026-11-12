@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Bookmark, Heart } from 'lucide-react';
+import { Bookmark, Heart, RotateCcw } from 'lucide-react';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/authContext';
 import type { JobPost, Property } from '../types';
@@ -8,30 +8,45 @@ import { PropertyCard } from '../components/property/PropertyCard';
 import { JobCard } from '../components/work/JobCard';
 import { EmptyState } from '../components/common/EmptyState';
 import { JobCardSkeleton, PropertyCardSkeleton } from '../components/common/Skeleton';
+import { usePageMeta } from '../lib/seo';
 
 export function SavedPropertiesPage() {
+  usePageMeta({
+    title: 'Saved Properties & Bookmarked Tenders — ZAIDAAT',
+    description: 'Revisit shortlisted homes, plots, and project tenders in your ZAIDAAT account.',
+    canonicalPath: '/saved',
+  });
   const { user, loading: authLoading } = useAuth();
   const [tab, setTab] = useState<'properties' | 'jobs'>('properties');
   const [properties, setProperties] = useState<Property[]>([]);
   const [jobs, setJobs] = useState<JobPost[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
 
-  useEffect(() => {
+  const loadSaved = useCallback(async () => {
     if (!user) {
       setLoading(false);
       return;
     }
     setLoading(true);
-    Promise.all([
-      api.get<{ properties: Property[] }>('/api/properties/saved'),
-      api.get<{ jobs: JobPost[] }>('/api/work/jobs/saved'),
-    ])
-      .then(([pRes, jRes]) => {
-        setProperties(pRes.properties);
-        setJobs(jRes.jobs);
-      })
-      .finally(() => setLoading(false));
+    setLoadError('');
+    try {
+      const [pRes, jRes] = await Promise.all([
+        api.get<{ properties: Property[] }>('/api/properties/saved'),
+        api.get<{ jobs: JobPost[] }>('/api/work/jobs/saved'),
+      ]);
+      setProperties(pRes.properties);
+      setJobs(jRes.jobs);
+    } catch (err: any) {
+      setLoadError(err?.message || 'Unable to load your saved shortlist.');
+    } finally {
+      setLoading(false);
+    }
   }, [user]);
+
+  useEffect(() => {
+    loadSaved();
+  }, [loadSaved]);
 
   if (!authLoading && !user) {
     return (
@@ -87,6 +102,15 @@ export function SavedPropertiesPage() {
       </div>
 
       <div className="mt-8">
+        {loadError && (
+          <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
+            <span>{loadError}</span>
+            <button type="button" onClick={loadSaved} className="btn-secondary px-3 py-1.5 text-xs">
+              <RotateCcw className="h-3.5 w-3.5" />
+              Retry
+            </button>
+          </div>
+        )}
         {loading ? (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {[1, 2, 3].map((n) => (

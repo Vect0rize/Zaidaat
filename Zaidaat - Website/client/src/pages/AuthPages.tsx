@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/authContext';
+import { usePageMeta } from '../lib/seo';
 
 const OAUTH_ERROR_MESSAGES: Record<string, string> = {
   google_not_configured: 'Google sign-in is not configured on this server yet.',
@@ -37,6 +38,11 @@ function GoogleMark() {
 }
 
 export function LoginPage() {
+  usePageMeta({
+    title: 'Sign In — ZAIDAAT',
+    description: 'Sign in to manage ZAIDAAT property listings, enquiries, work tenders, and quotes.',
+    canonicalPath: '/login',
+  });
   const { providers, refreshUser } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -70,9 +76,9 @@ export function LoginPage() {
         <div className="hidden flex-col justify-between border-r border-slate-200 bg-slate-50 p-8 lg:col-span-5 lg:flex">
           <div>
             <p className="section-kicker">ZAIDAAT Workspace</p>
-            <h1 className="mt-2 text-2xl font-bold tracking-tight text-navy-900">
+            <p className="mt-2 text-2xl font-bold tracking-tight text-navy-900">
               Sign in to manage properties, tenders &amp; site projects
-            </h1>
+            </p>
             <p className="mt-2 text-sm leading-relaxed text-slate-600">
               Review buyer enquiries, submit itemized trade quotations, manage hiring updates, and upload KYC records.
             </p>
@@ -161,6 +167,11 @@ export function LoginPage() {
 }
 
 export function RegisterPage() {
+  usePageMeta({
+    title: 'Create Account — ZAIDAAT',
+    description: 'Create a free ZAIDAAT account to post properties, hire contractors, or submit trade quotations.',
+    canonicalPath: '/register',
+  });
   const { providers, refreshUser } = useAuth();
   const navigate = useNavigate();
 
@@ -203,9 +214,9 @@ export function RegisterPage() {
         <div className="hidden flex-col justify-between border-r border-slate-200 bg-slate-50 p-8 lg:col-span-5 lg:flex">
           <div>
             <p className="section-kicker">Create Account</p>
-            <h1 className="mt-2 text-2xl font-bold tracking-tight text-navy-900">
+            <p className="mt-2 text-2xl font-bold tracking-tight text-navy-900">
               One ZAIDAAT account for real estate &amp; trade services
-            </h1>
+            </p>
             <p className="mt-2 text-sm leading-relaxed text-slate-600">
               List homes, commercial spaces, and residential plots, post construction briefs, or set up your contractor profile with portfolio proof.
             </p>
@@ -220,9 +231,9 @@ export function RegisterPage() {
         </div>
 
         <div className="p-6 sm:p-8 lg:col-span-7">
-          <div className="lg:hidden">
-            <h1 className="text-xl font-bold text-navy-900">Create Your ZAIDAAT Account</h1>
-            <p className="mt-1 text-xs text-slate-500">One account for properties, services &amp; projects</p>
+          <div>
+            <h1 className="text-xl font-bold text-navy-900 lg:hidden">Create Your ZAIDAAT Account</h1>
+            <p className="mt-1 text-xs text-slate-500 lg:hidden">One account for properties, services &amp; projects</p>
           </div>
 
           {error && (
@@ -317,16 +328,26 @@ export function RegisterPage() {
 }
 
 export function ForgotPasswordPage() {
+  usePageMeta({
+    title: 'Forgot Password — ZAIDAAT',
+    description: 'Reset your ZAIDAAT account password safely.',
+    canonicalPath: '/forgot-password',
+  });
   const [email, setEmail] = useState('');
   const [result, setResult] = useState<{ message?: string; devResetToken?: string }>({});
+  const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (busy) return;
     setBusy(true);
+    setErr('');
     try {
       const res = await api.post<{ message: string; devResetToken?: string }>('/api/auth/forgot-password', { email });
       setResult(res);
+    } catch (e: any) {
+      setErr(e?.message || 'Unable to process password reset request right now.');
     } finally {
       setBusy(false);
     }
@@ -356,12 +377,14 @@ export function ForgotPasswordPage() {
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="mt-5 space-y-4">
+            {err && <div className="rounded-lg bg-rose-50 p-3 text-xs font-semibold text-rose-700">{err}</div>}
             <input
               type="email"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@example.com"
+              aria-label="Registered Email"
               className="input-field"
             />
             <button type="submit" disabled={busy} className="btn-primary w-full py-2.5">
@@ -375,21 +398,31 @@ export function ForgotPasswordPage() {
 }
 
 export function ResetPasswordPage() {
+  usePageMeta({
+    title: 'Reset Password — ZAIDAAT',
+    description: 'Set a new password for your ZAIDAAT account.',
+    canonicalPath: '/reset-password',
+  });
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [token, setToken] = useState(searchParams.get('token') || '');
   const [newPassword, setNewPassword] = useState('');
   const [err, setErr] = useState('');
+  const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (busy) return;
     setErr('');
+    setBusy(true);
     try {
       await api.post('/api/auth/reset-password', { token, newPassword });
       setDone(true);
     } catch (e: any) {
       setErr(e.message || 'Reset failed');
+    } finally {
+      setBusy(false);
     }
   };
 
@@ -414,6 +447,7 @@ export function ResetPasswordPage() {
               value={token}
               onChange={(e) => setToken(e.target.value)}
               placeholder="Reset Token"
+              aria-label="Reset Token"
               className="input-field"
             />
             <input
@@ -423,10 +457,11 @@ export function ResetPasswordPage() {
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               placeholder="New Password (min 8 chars)"
+              aria-label="New Password"
               className="input-field"
             />
-            <button type="submit" className="btn-primary w-full py-2.5">
-              Update Password
+            <button type="submit" disabled={busy} className="btn-primary w-full py-2.5">
+              {busy ? 'Updating...' : 'Update Password'}
             </button>
           </form>
         )}

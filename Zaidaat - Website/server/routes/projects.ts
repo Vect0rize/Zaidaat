@@ -68,6 +68,10 @@ projectsRouter.post('/', requireAuth, (req, res, next) => {
         res.status(400).json({ error: 'Selected linked property does not exist.' });
         return;
       }
+      if (prop.owner_id !== req.user!.id && !req.user!.roles.includes('admin')) {
+        res.status(403).json({ error: 'You can only link your own property to a project.' });
+        return;
+      }
     }
 
     const ins = db
@@ -277,7 +281,7 @@ projectsRouter.post('/:id/professionals', requireAuth, (req, res, next) => {
       type: 'project_assigned',
       title: `Added to Project: ${access.project.title}`,
       body: `Role: ${cleanText(parsed.roleInProject, 80)}`,
-      linkUrl: `/projects/${projectId}`,
+      linkUrl: `/dashboard`,
     });
 
     res.status(201).json({ ok: true });
@@ -394,7 +398,7 @@ projectsRouter.post('/:id/messages', requireAuth, (req, res, next) => {
         type: 'project_message',
         title: `Project Message in ${access.project.title}`,
         body: `${req.user!.fullName}: ${cleanText(parsed.body, 120)}`,
-        linkUrl: `/projects/${projectId}`,
+        linkUrl: `/dashboard`,
       });
     }
 

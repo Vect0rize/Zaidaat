@@ -3,33 +3,50 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { MessageSquare, Send } from 'lucide-react';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/authContext';
+import { useToast } from '../lib/toastContext';
 import { formatDate } from '../lib/format';
+import { usePageMeta } from '../lib/seo';
 
 export function MessagesPage() {
+  usePageMeta({
+    title: 'Messages & Conversations — ZAIDAAT',
+    description: 'Protected direct messaging with property owners, buyers, and verified professionals.',
+    canonicalPath: '/messages',
+  });
   const { user, loading: authLoading, refreshUser } = useAuth();
+  const toast = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
   const [threads, setThreads] = useState<any[]>([]);
   const [activeThread, setActiveThread] = useState<any | null>(null);
   const [messages, setMessages] = useState<any[]>([]);
   const [body, setBody] = useState('');
+  const [sending, setSending] = useState(false);
 
   const loadThreads = useCallback(async () => {
     if (!user) return;
-    const res = await api.get<{ threads: any[] }>('/api/messages/threads');
-    setThreads(res.threads);
-    const paramThread = searchParams.get('thread');
-    if (paramThread) {
-      const found = res.threads.find((t) => t.threadKey === paramThread);
-      if (found) setActiveThread(found);
-    } else if (res.threads[0] && !activeThread) {
-      setActiveThread(res.threads[0]);
+    try {
+      const res = await api.get<{ threads: any[] }>('/api/messages/threads');
+      setThreads(res.threads);
+      const paramThread = searchParams.get('thread');
+      if (paramThread) {
+        const found = res.threads.find((t) => t.threadKey === paramThread);
+        if (found) setActiveThread(found);
+      } else if (res.threads[0] && !activeThread) {
+        setActiveThread(res.threads[0]);
+      }
+    } catch (err: any) {
+      toast.error(err?.message || 'Unable to load conversations.');
     }
   }, [user, searchParams]);
 
   const loadThreadMessages = useCallback(async (threadKey: string) => {
-    const res = await api.get<{ messages: any[] }>(`/api/messages/thread/${encodeURIComponent(threadKey)}`);
-    setMessages(res.messages);
-    refreshUser();
+    try {
+      const res = await api.get<{ messages: any[] }>(`/api/messages/thread/${encodeURIComponent(threadKey)}`);
+      setMessages(res.messages);
+      refreshUser();
+    } catch (err: any) {
+      toast.error(err?.message || 'Unable to load messages.');
+    }
   }, [refreshUser]);
 
   useEffect(() => {
@@ -44,16 +61,23 @@ export function MessagesPage() {
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!activeThread || !body.trim()) return;
-    await api.post('/api/messages', {
-      recipientId: activeThread.peerId,
-      contextType: activeThread.contextType || 'direct',
-      contextId: activeThread.contextId || null,
-      body: body.trim(),
-    });
-    setBody('');
-    await loadThreadMessages(activeThread.threadKey);
-    await loadThreads();
+    if (!activeThread || !body.trim() || sending) return;
+    setSending(true);
+    try {
+      await api.post('/api/messages', {
+        recipientId: activeThread.peerId,
+        contextType: activeThread.contextType || 'direct',
+        contextId: activeThread.contextId || null,
+        body: body.trim(),
+      });
+      setBody('');
+      await loadThreadMessages(activeThread.threadKey);
+      await loadThreads();
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to send message.');
+    } finally {
+      setSending(false);
+    }
   };
 
   if (!authLoading && !user) {
@@ -147,11 +171,12 @@ export function MessagesPage() {
                   value={body}
                   onChange={(e) => setBody(e.target.value)}
                   placeholder="Write a reply..."
+                  aria-label="Message reply"
                   className="input-field"
                 />
-                <button type="submit" className="btn-primary px-5">
+                <button type="submit" disabled={sending || !body.trim()} className="btn-primary px-5 shrink-0">
                   <Send className="h-4 w-4" />
-                  Send
+                  {sending ? 'Sending...' : 'Send'}
                 </button>
               </form>
             </>
