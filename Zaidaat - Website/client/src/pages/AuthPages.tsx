@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { Phone } from 'lucide-react';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/authContext';
 
@@ -41,14 +40,9 @@ export function LoginPage() {
   const { providers, refreshUser } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const [mode, setMode] = useState<'password' | 'otp'>('password');
 
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
-  const [phone, setPhone] = useState('');
-  const [otpCode, setOtpCode] = useState('');
-  const [otpSentMsg, setOtpSentMsg] = useState('');
-  const [devOtpPreview, setDevOtpPreview] = useState('');
 
   const rawError = searchParams.get('error') || '';
   const [error, setError] = useState(OAUTH_ERROR_MESSAGES[rawError] || rawError);
@@ -64,35 +58,6 @@ export function LoginPage() {
       navigate('/dashboard');
     } catch (err: any) {
       setError(err.message || 'Login failed');
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const handleSendOtp = async () => {
-    setBusy(true);
-    setError('');
-    try {
-      const res = await api.post<{ message: string; devOtpCode?: string }>('/api/auth/otp/send', { phone });
-      setOtpSentMsg(res.message);
-      if (res.devOtpCode) setDevOtpPreview(res.devOtpCode);
-    } catch (err: any) {
-      setError(err.message || 'Could not send OTP');
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const handleVerifyOtp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setBusy(true);
-    setError('');
-    try {
-      await api.post('/api/auth/otp/verify', { phone, code: otpCode });
-      await refreshUser();
-      navigate('/dashboard');
-    } catch (err: any) {
-      setError(err.message || 'OTP verification failed');
     } finally {
       setBusy(false);
     }
@@ -123,30 +88,9 @@ export function LoginPage() {
 
         {/* Right Form Column */}
         <div className="p-6 sm:p-8 lg:col-span-7">
-          <div className="lg:hidden">
+          <div className="mb-4">
             <h1 className="text-xl font-bold text-navy-900">Sign In to ZAIDAAT</h1>
             <p className="mt-1 text-xs text-slate-500">Access properties, enquiries, jobs &amp; quotations</p>
-          </div>
-
-          <div className="mt-4 grid grid-cols-2 rounded-md border border-slate-200 bg-slate-50 p-0.5 lg:mt-0">
-            <button
-              type="button"
-              onClick={() => setMode('password')}
-              className={`rounded py-2 text-xs font-semibold transition ${
-                mode === 'password' ? 'bg-white text-navy-900 shadow-sm' : 'text-slate-600'
-              }`}
-            >
-              Email / Password
-            </button>
-            <button
-              type="button"
-              onClick={() => setMode('otp')}
-              className={`rounded py-2 text-xs font-semibold transition ${
-                mode === 'otp' ? 'bg-white text-navy-900 shadow-sm' : 'text-slate-600'
-              }`}
-            >
-              Mobile OTP
-            </button>
           </div>
 
           {error && (
@@ -155,88 +99,37 @@ export function LoginPage() {
             </div>
           )}
 
-          {mode === 'password' ? (
-            <form onSubmit={handlePasswordLogin} className="mt-5 space-y-4">
-              <div>
-                <label className="mb-1 block text-xs font-semibold text-slate-600">Email or 10-Digit Mobile</label>
-                <input
-                  type="text"
-                  required
-                  value={identifier}
-                  onChange={(e) => setIdentifier(e.target.value)}
-                  placeholder="you@example.com or 98XXXXXXXX"
-                  className="input-field"
-                />
+          <form onSubmit={handlePasswordLogin} className="mt-5 space-y-4">
+            <div>
+              <label className="mb-1 block text-xs font-semibold text-slate-600">Email or 10-Digit Mobile</label>
+              <input
+                type="text"
+                required
+                value={identifier}
+                onChange={(e) => setIdentifier(e.target.value)}
+                placeholder="you@example.com or 98XXXXXXXX"
+                className="input-field"
+              />
+            </div>
+            <div>
+              <div className="mb-1 flex items-center justify-between">
+                <label className="text-xs font-semibold text-slate-600">Password</label>
+                <Link to="/forgot-password" className="text-xs font-semibold text-brand-600 hover:underline">
+                  Forgot Password?
+                </Link>
               </div>
-              <div>
-                <div className="mb-1 flex items-center justify-between">
-                  <label className="text-xs font-semibold text-slate-600">Password</label>
-                  <Link to="/forgot-password" className="text-xs font-semibold text-brand-600 hover:underline">
-                    Forgot Password?
-                  </Link>
-                </div>
-                <input
-                  type="password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="input-field"
-                />
-              </div>
-              <button type="submit" disabled={busy} className="btn-primary w-full py-2.5">
-                {busy ? 'Signing in...' : 'Sign In'}
-              </button>
-            </form>
-          ) : (
-            <form onSubmit={handleVerifyOtp} className="mt-5 space-y-4">
-              <div>
-                <label className="mb-1 block text-xs font-semibold text-slate-600">Indian Mobile Number</label>
-                <div className="flex gap-2">
-                  <input
-                    type="tel"
-                    required
-                    pattern="[6-9][0-9]{9}"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    placeholder="9820112233"
-                    className="input-field"
-                  />
-                  <button type="button" onClick={handleSendOtp} disabled={busy || !phone} className="btn-navy shrink-0 text-xs">
-                    Send OTP
-                  </button>
-                </div>
-              </div>
-
-              {otpSentMsg && (
-                <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-800">
-                  <p className="font-semibold">{otpSentMsg}</p>
-                  {devOtpPreview && (
-                    <p className="mt-1 font-mono font-bold">
-                      Dev Mode OTP: <span className="rounded bg-white px-1.5 py-0.5">{devOtpPreview}</span>
-                    </p>
-                  )}
-                </div>
-              )}
-
-              <div>
-                <label className="mb-1 block text-xs font-semibold text-slate-600">6-Digit OTP</label>
-                <input
-                  type="text"
-                  required
-                  pattern="\d{6}"
-                  value={otpCode}
-                  onChange={(e) => setOtpCode(e.target.value)}
-                  placeholder="123456"
-                  className="input-field"
-                />
-              </div>
-
-              <button type="submit" disabled={busy} className="btn-primary w-full py-2.5">
-                <Phone className="h-4 w-4" />
-                Verify OTP &amp; Continue
-              </button>
-            </form>
-          )}
+              <input
+                type="password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="input-field"
+              />
+            </div>
+            <button type="submit" disabled={busy} className="btn-primary w-full py-2.5">
+              {busy ? 'Signing in...' : 'Sign In'}
+            </button>
+          </form>
 
           {/* Google Auth */}
           <div className="mt-5 border-t border-slate-100 pt-5">
@@ -253,48 +146,6 @@ export function LoginPage() {
                 Google Sign-In activates automatically when <code className="font-semibold">GOOGLE_CLIENT_ID</code> &amp; <code className="font-semibold">GOOGLE_CLIENT_SECRET</code> are configured.
               </div>
             )}
-          </div>
-
-          {/* Local Test Account Helpers */}
-          <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-3.5">
-            <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
-              Seeded Local Demo Accounts (Quick Fill)
-            </p>
-            <div className="mt-2 grid grid-cols-3 gap-1.5">
-              <button
-                type="button"
-                onClick={() => {
-                  setMode('password');
-                  setIdentifier('ananya.sharma@zaidaat.in');
-                  setPassword('Zaidaat@123');
-                }}
-                className="rounded border border-slate-200 bg-white px-2 py-1.5 text-[11px] font-semibold text-slate-700 hover:bg-brand-50"
-              >
-                Customer
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setMode('password');
-                  setIdentifier('vikram.carpenter@zaidaat.in');
-                  setPassword('Zaidaat@123');
-                }}
-                className="rounded border border-slate-200 bg-white px-2 py-1.5 text-[11px] font-semibold text-slate-700 hover:bg-brand-50"
-              >
-                Professional
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setMode('password');
-                  setIdentifier('admin@zaidaat.in');
-                  setPassword('AdminZaidaat@123');
-                }}
-                className="rounded border border-slate-200 bg-white px-2 py-1.5 text-[11px] font-semibold text-slate-700 hover:bg-brand-50"
-              >
-                Admin
-              </button>
-            </div>
           </div>
 
           <p className="mt-5 text-center text-xs text-slate-500">
