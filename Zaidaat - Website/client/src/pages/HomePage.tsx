@@ -7,7 +7,6 @@ import {
   Building2,
   CheckCircle2,
   FileCheck2,
-  FolderKanban,
   Lock,
   MapPin,
   Search,
@@ -109,11 +108,11 @@ export function HomePage() {
             <div className="min-w-0 lg:col-span-7">
               <p className="section-kicker">All-India Property &amp; Trade Network</p>
               <h1 className="mt-2 text-3xl font-bold tracking-tight text-navy-900 sm:text-[40px] sm:leading-[1.12]">
-                Buy or rent property, and hire verified build trades across India.
+                Sell, buy or rent property, and hire verified build traders across India.
               </h1>
               <p className="mt-3 max-w-2xl text-[15px] leading-relaxed text-slate-600">
                 Search residential and commercial properties across 28 States and 8 Union Territories, compare
-                document-verified contractors and architects, and manage execution in Project Hub.
+                document-verified contractors and architects, and collect itemized work quotes directly.
               </p>
 
               {/* Unified Search Panel */}
@@ -143,9 +142,16 @@ export function HomePage() {
                     ))}
                   </div>
 
-                  <div className="hidden items-center gap-4 text-xs font-semibold sm:flex">
-                    <Link to="/sell" className="text-brand-600 hover:text-brand-700 hover:underline">
-                      List Property &rarr;
+                  <div className="flex flex-wrap items-center gap-3 text-xs font-semibold">
+                    <Link
+                      to="/sell"
+                      className="inline-flex items-center gap-1.5 rounded-full bg-brand-600 px-3 py-1 text-white shadow-sm ring-2 ring-brand-200 transition hover:bg-brand-700"
+                    >
+                      <span>List Property</span>
+                      <span className="rounded-full bg-emerald-400 px-1.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-navy-950">
+                        FREE
+                      </span>
+                      <span aria-hidden="true">&rarr;</span>
                     </Link>
                     <Link to="/post-job" className="text-navy-900 hover:text-brand-600 hover:underline">
                       Post Work &rarr;
@@ -287,7 +293,7 @@ export function HomePage() {
           <div>
             <p className="section-kicker">Skilled Trade Directory</p>
             <h2 className="mt-1 text-xl font-bold text-slate-900 sm:text-2xl">
-              Explore Building, Interior &amp; Maintenance Trades
+              Explore Building, Interior &amp; Maintenance Vendors
             </h2>
           </div>
           <div className="flex items-center gap-4 text-xs font-semibold">
@@ -320,7 +326,7 @@ export function HomePage() {
                   size="md"
                   className="group-hover:border-brand-200 group-hover:bg-brand-50 group-hover:text-brand-600"
                 />
-                <span className="tabular-price text-[11px] font-medium text-slate-400">
+                <span className="text-[11px] font-medium text-slate-500">
                   {cat.pro_count || 0} listed
                 </span>
               </div>
@@ -491,9 +497,9 @@ export function HomePage() {
                 runs through verified, role-checked platform workflows.
               </p>
               <div className="mt-5 flex flex-wrap gap-2.5">
-                <Link to="/projects" className="btn-navy px-4 py-2 text-xs">
-                  <FolderKanban className="h-3.5 w-3.5" />
-                  Open Project Hub
+                <Link to="/find-work" className="btn-navy px-4 py-2 text-xs">
+                  <Briefcase className="h-3.5 w-3.5" />
+                  Browse Work Tenders
                 </Link>
                 <Link to="/plans" className="btn-secondary px-4 py-2 text-xs">
                   Membership Plans
@@ -521,8 +527,8 @@ export function HomePage() {
                   },
                   {
                     icon: Lock,
-                    title: '04 · Project Hub & Moderation',
-                    desc: 'Accepted quotes launch a milestone workspace with role checks and dispute routing.',
+                    title: '04 · Direct Enquiries & Moderation',
+                    desc: 'Accept transparent itemized quotes directly with verified account controls and moderation.',
                   },
                 ].map((item) => {
                   const Icon = item.icon;

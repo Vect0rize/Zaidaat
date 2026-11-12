@@ -1,8 +1,8 @@
 -- Seed all 19+ Professional Categories and Nationwide India States, Cities & Localities
 
 INSERT OR IGNORE INTO professional_categories (name, slug, group_name, description, icon_name, sort_order) VALUES
-('Carpenters', 'carpenters', 'Woodwork & Interiors', 'Custom furniture, wardrobes, doors, wood framing, and repairs', 'Hammer', 1),
-('Thekedars / Contractors', 'thekedars-contractors', 'Construction & Turnkey', 'End-to-end residential and commercial civil contracting & turnkey execution', 'HardHat', 2),
+('Thekedars / Contractors', 'thekedars-contractors', 'Construction & Turnkey', 'End-to-end residential and commercial civil contracting & turnkey execution', 'HardHat', 1),
+('Carpenters', 'carpenters', 'Woodwork & Interiors', 'Custom furniture, wardrobes, doors, wood framing, and repairs', 'Hammer', 2),
 ('Painters', 'painters', 'Finishing & Decor', 'Interior, exterior, texture, putty, and weather-coat painting', 'PaintRoller', 3),
 ('Electricians', 'electricians', 'Electrical & Smart Home', 'House wiring, MCB panels, inverter setup, lighting, and fault repair', 'Zap', 4),
 ('Plumbers', 'plumbers', 'Plumbing & Sanitary', 'Pipeline fitting, bathroom fittings, motor pumps, and leakage repair', 'Droplets', 5),

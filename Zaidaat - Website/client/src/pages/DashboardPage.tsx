@@ -175,25 +175,20 @@ export function DashboardPage() {
   };
 
   const handleHiringRespond = async (hrId: number, status: 'accepted' | 'rejected') => {
-    const res = await api.patch<{ ok: boolean; projectId: number | null }>(
+    await api.patch<{ ok: boolean; projectId: number | null }>(
       `/api/work/hiring-requests/${hrId}/respond`,
       { status }
     );
-    toast.success(status === 'accepted' ? 'Request accepted! Opening Project Hub.' : 'Work request declined.');
-    if (status === 'accepted' && res.projectId) {
-      navigate(`/projects/${res.projectId}`);
-    } else {
-      loadDashboard();
-    }
+    toast.success(status === 'accepted' ? 'Work request accepted!' : 'Work request declined.');
+    loadDashboard();
   };
 
   const handleAcceptQuote = async (quoteId: number) => {
-    const res = await api.post<{ ok: boolean; projectId: number | null }>(
+    await api.post<{ ok: boolean; projectId: number | null }>(
       `/api/work/quotations/${quoteId}/accept`
     );
     toast.success('Quotation accepted and professional hired.');
-    if (res.projectId) navigate(`/projects/${res.projectId}`);
-    else loadDashboard();
+    loadDashboard();
   };
 
   if (authLoading || !user) {
@@ -244,7 +239,7 @@ export function DashboardPage() {
             Welcome, {user.fullName}
           </h1>
           <p className="mt-1 text-sm text-slate-500">
-            Unified control center for your property listings, contractor hires, work tenders, and Project Hub.
+            Unified control center for your property listings, contractor hires, work tenders, and messages.
           </p>
         </div>
 
@@ -404,13 +399,13 @@ export function DashboardPage() {
                         <p className="text-xs text-slate-500">Collect itemized pro quotes</p>
                       </div>
                     </Link>
-                    <Link to="/projects" className="card-hover flex items-center gap-3 p-4">
+                    <Link to="/professionals" className="card-hover flex items-center gap-3 p-4">
                       <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700">
-                        <FolderKanban className="h-5 w-5" />
+                        <Users className="h-5 w-5" />
                       </div>
                       <div>
-                        <p className="text-sm font-bold text-slate-900">Open Project Hub</p>
-                        <p className="text-xs text-slate-500">Track milestones &amp; photos</p>
+                        <p className="text-sm font-bold text-slate-900">Find Verified Vendors</p>
+                        <p className="text-xs text-slate-500">Browse contractors &amp; artisans</p>
                       </div>
                     </Link>
                   </div>
@@ -697,23 +692,23 @@ export function DashboardPage() {
               {customerNav === 'active_projects' && (
                 <section className="card p-6">
                   <div className="flex items-center justify-between">
-                    <h2 className="text-lg font-bold text-slate-900">Active Projects in Project Hub ({projects.length})</h2>
-                    <Link to="/projects" className="btn-navy px-3.5 py-2 text-xs">
-                      Open Project Hub
+                    <h2 className="text-lg font-bold text-slate-900">Active Work Orders ({projects.length})</h2>
+                    <Link to="/post-job" className="btn-navy px-3.5 py-2 text-xs">
+                      Post Work Requirement
                     </Link>
                   </div>
                   <div className="mt-4 grid gap-4 sm:grid-cols-2">
                     {projects.length === 0 ? (
                       <div className="sm:col-span-2">
                         <EmptyState
-                          title="No active projects yet"
-                          description="Projects appear automatically when you accept a professional quote or start one in Project Hub."
-                          action={<Link to="/projects" className="btn-primary text-xs">Go to Project Hub</Link>}
+                          title="No active work orders yet"
+                          description="Active work orders appear automatically when you accept a professional quote or hire request."
+                          action={<Link to="/professionals" className="btn-primary text-xs">Find Professionals</Link>}
                         />
                       </div>
                     ) : (
                       projects.map((p) => (
-                        <Link key={p.id} to={`/projects/${p.id}`} className="card-hover p-4">
+                        <div key={p.id} className="card p-4">
                           <div className="flex justify-between">
                             <p className="font-bold text-slate-900">{p.title}</p>
                             <span className="text-xs font-bold text-brand-700 tabular-price">{p.progress_percent}%</span>
@@ -724,7 +719,7 @@ export function DashboardPage() {
                           <p className="mt-2 text-xs text-slate-500">
                             {p.city} &middot; Budget {formatINR(p.total_budget)} &middot; <span className="uppercase font-semibold">{p.status}</span>
                           </p>
-                        </Link>
+                        </div>
                       ))
                     )}
                   </div>
@@ -991,14 +986,14 @@ export function DashboardPage() {
               {workerNav === 'active_projects' && (
                 <section className="card p-6">
                   <div className="flex items-center justify-between">
-                    <h2 className="text-lg font-bold text-slate-900">Assigned Projects ({projects.length})</h2>
-                    <Link to="/projects" className="btn-navy px-3.5 py-2 text-xs">
-                      Open Project Hub
+                    <h2 className="text-lg font-bold text-slate-900">Assigned Work Orders ({projects.length})</h2>
+                    <Link to="/find-work" className="btn-navy px-3.5 py-2 text-xs">
+                      Browse Work Tenders
                     </Link>
                   </div>
                   <div className="mt-4 grid gap-4 sm:grid-cols-2">
                     {projects.map((p) => (
-                      <Link key={p.id} to={`/projects/${p.id}`} className="card-hover p-4">
+                      <div key={p.id} className="card p-4">
                         <div className="flex justify-between">
                           <p className="font-bold text-slate-900">{p.title}</p>
                           <span className="text-xs font-bold text-brand-700 tabular-price">{p.progress_percent}%</span>
@@ -1006,7 +1001,7 @@ export function DashboardPage() {
                         <p className="mt-1 text-xs text-slate-500">
                           {p.city} &middot; Budget {formatINR(p.total_budget)} &middot; <span className="uppercase font-semibold">{p.status}</span>
                         </p>
-                      </Link>
+                      </div>
                     ))}
                   </div>
                 </section>

@@ -5,7 +5,6 @@ import {
   Briefcase,
   Building2,
   ChevronDown,
-  FolderKanban,
   Heart,
   LayoutDashboard,
   LogOut,
@@ -31,7 +30,6 @@ export function Navbar() {
     { to: '/sell', label: 'Sell', icon: PlusCircle },
     { to: '/professionals', label: 'Find Professionals', icon: Users },
     { to: '/find-work', label: 'Find Work', icon: Briefcase },
-    { to: '/projects', label: 'Project Hub', icon: FolderKanban },
   ];
 
   useEffect(() => {
@@ -207,14 +205,6 @@ export function Navbar() {
                       >
                         <Heart className="h-4 w-4 text-rose-500" />
                         Saved Properties &amp; Jobs
-                      </Link>
-                      <Link
-                        to="/projects"
-                        onClick={() => setUserMenuOpen(false)}
-                        className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
-                      >
-                        <FolderKanban className="h-4 w-4 text-slate-500" />
-                        Project Hub
                       </Link>
                       <Link
                         to="/post-job"

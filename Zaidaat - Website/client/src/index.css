@@ -5,7 +5,7 @@
 @layer base {
   html {
     scroll-behavior: smooth;
-    font-family: 'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, sans-serif;
+    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
@@ -57,7 +57,7 @@
   }
 
   .tabular-price {
-    font-variant-numeric: tabular-nums;
+    font-variant-numeric: normal;
   }
 }
 

@@ -30,7 +30,7 @@ export function Footer() {
               </span>
             </div>
             <p className="mt-3 text-xs leading-relaxed text-slate-400">
-              All-India marketplace uniting residential &amp; commercial property discovery, skilled trade hiring, itemized quotations, and Project Hub milestone tracking.
+              All-India marketplace uniting residential &amp; commercial property discovery, skilled trade hiring, and itemized work quotations.
             </p>
             <p className="mt-3 text-[11px] font-medium text-slate-500">
               Pan-India coverage across states and major urban centres
@@ -61,7 +61,6 @@ export function Footer() {
           <div>
             <h4 className="text-xs font-bold uppercase tracking-wider text-white">Platform &amp; Workspace</h4>
             <ul className="mt-3.5 space-y-2.5 text-xs text-slate-400">
-              <li><Link to="/projects" className="transition hover:text-white">Project Hub</Link></li>
               <li><Link to="/dashboard" className="transition hover:text-white">Customer &amp; Partner Dashboard</Link></li>
               <li><Link to="/messages" className="transition hover:text-white">Inbox &amp; Quotations</Link></li>
               <li><Link to="/plans" className="transition hover:text-white">Membership Plans</Link></li>

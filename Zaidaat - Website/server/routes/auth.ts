@@ -1,5 +1,5 @@
 import crypto from 'node:crypto';
-import { Router } from 'express';
+import { Router, type Request } from 'express';
 import bcrypt from 'bcryptjs';
 import { getDb, withTransaction } from '../db/connection.js';
 import { config } from '../config.js';
@@ -459,7 +459,32 @@ authRouter.post('/otp/verify', otpRateLimiter, (req, res, next) => {
   }
 });
 
-authRouter.get('/google', (_req, res) => {
+function resolveGoogleOAuthContext(req: Request): {
+  appUrl: string;
+  redirectUri: string;
+  isHttps: boolean;
+} {
+  const forwardedProto = String(req.headers['x-forwarded-proto'] || '').split(',')[0].trim();
+  const proto = forwardedProto || req.protocol || (config.isProd ? 'https' : 'http');
+  const rawHost = String(req.headers['x-forwarded-host'] || req.get('host') || '').split(',')[0].trim();
+  const safeHost = /^[a-zA-Z0-9.-]+(?::\d+)?$/.test(rawHost) ? rawHost : '';
+  const requestOrigin = safeHost ? `${proto}://${safeHost}` : config.appUrl;
+
+  const appUrl = config.google.hasExplicitAppUrl ? config.appUrl.replace(/\/+$/, '') : requestOrigin;
+  const redirectUri = config.google.hasExplicitRedirectUri
+    ? config.google.redirectUri
+    : safeHost
+      ? `${requestOrigin}/api/auth/google/callback`
+      : config.google.redirectUri;
+
+  return {
+    appUrl,
+    redirectUri,
+    isHttps: proto === 'https' || appUrl.startsWith('https://'),
+  };
+}
+
+authRouter.get('/google', (req, res) => {
   if (!config.google.configured) {
     res.status(501).json({
       error:
@@ -467,17 +492,18 @@ authRouter.get('/google', (_req, res) => {
     });
     return;
   }
+  const { redirectUri, isHttps } = resolveGoogleOAuthContext(req);
   const state = crypto.randomBytes(24).toString('hex');
   res.cookie('zaidaat_oauth_state', state, {
     httpOnly: true,
     sameSite: 'lax',
-    secure: config.cookieSecure,
+    secure: config.cookieSecure || isHttps,
     maxAge: 10 * 60 * 1000,
     path: '/api/auth/google',
   });
   const params = new URLSearchParams({
     client_id: config.google.clientId,
-    redirect_uri: config.google.redirectUri,
+    redirect_uri: redirectUri,
     response_type: 'code',
     scope: 'openid email profile',
     access_type: 'online',
@@ -489,25 +515,38 @@ authRouter.get('/google', (_req, res) => {
 
 authRouter.get('/google/callback', async (req, res, next) => {
   try {
+    const { appUrl, redirectUri, isHttps } = resolveGoogleOAuthContext(req);
     if (!config.google.configured) {
-      res.redirect(`${config.appUrl}/login?error=google_not_configured`);
+      res.redirect(`${appUrl}/login?error=google_not_configured`);
+      return;
+    }
+    const cookieOpts = {
+      path: '/api/auth/google',
+      httpOnly: true,
+      sameSite: 'lax' as const,
+      secure: config.cookieSecure || isHttps,
+    };
+    const oauthError = String(req.query.error || '');
+    if (oauthError) {
+      res.clearCookie('zaidaat_oauth_state', cookieOpts);
+      res.redirect(`${appUrl}/login?error=google_cancelled`);
       return;
     }
     const queryState = String(req.query.state || '');
     const cookieState = String((req.cookies?.zaidaat_oauth_state as string | undefined) || '');
-    res.clearCookie('zaidaat_oauth_state', { path: '/api/auth/google' });
+    res.clearCookie('zaidaat_oauth_state', cookieOpts);
     if (
       !queryState ||
       !cookieState ||
       queryState.length !== cookieState.length ||
       !crypto.timingSafeEqual(Buffer.from(queryState), Buffer.from(cookieState))
     ) {
-      res.redirect(`${config.appUrl}/login?error=google_invalid_state`);
+      res.redirect(`${appUrl}/login?error=google_invalid_state`);
       return;
     }
     const code = String(req.query.code || '');
     if (!code) {
-      res.redirect(`${config.appUrl}/login?error=google_missing_code`);
+      res.redirect(`${appUrl}/login?error=google_missing_code`);
       return;
     }
 
@@ -518,14 +557,14 @@ authRouter.get('/google/callback', async (req, res, next) => {
         code,
         client_id: config.google.clientId,
         client_secret: config.google.clientSecret,
-        redirect_uri: config.google.redirectUri,
+        redirect_uri: redirectUri,
         grant_type: 'authorization_code',
       }),
     });
 
     const tokenData = (await tokenRes.json()) as { access_token?: string };
     if (!tokenRes.ok || !tokenData.access_token) {
-      res.redirect(`${config.appUrl}/login?error=google_token_exchange_failed`);
+      res.redirect(`${appUrl}/login?error=google_token_exchange_failed`);
       return;
     }
 
@@ -541,7 +580,7 @@ authRouter.get('/google/callback', async (req, res, next) => {
     };
 
     if (!profile.email || !profile.id || profile.verified_email === false) {
-      res.redirect(`${config.appUrl}/login?error=google_profile_incomplete`);
+      res.redirect(`${appUrl}/login?error=google_profile_incomplete`);
       return;
     }
 
@@ -551,7 +590,7 @@ authRouter.get('/google/callback', async (req, res, next) => {
       .get(profile.id, profile.email) as { id: number; is_active: number; google_id: string | null } | undefined;
 
     if (user && user.is_active !== 1) {
-      res.redirect(`${config.appUrl}/login?error=account_suspended`);
+      res.redirect(`${appUrl}/login?error=account_suspended`);
       return;
     }
 
@@ -583,7 +622,7 @@ authRouter.get('/google/callback', async (req, res, next) => {
 
     const { token } = issueSessionToken(userId);
     setAuthCookie(res, token);
-    res.redirect(`${config.appUrl}/dashboard`);
+    res.redirect(`${appUrl}/dashboard`);
   } catch (err) {
     next(err);
   }

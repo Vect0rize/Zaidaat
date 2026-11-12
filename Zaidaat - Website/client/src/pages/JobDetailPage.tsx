@@ -5,7 +5,6 @@ import {
   Calendar,
   CheckCircle2,
   FileText,
-  FolderKanban,
   MapPin,
   Plus,
   Send,
@@ -138,17 +137,13 @@ export function JobDetailPage() {
   };
 
   const handleAcceptQuote = async (quoteId: number) => {
-    if (!window.confirm('Accept this quotation, hire this professional, and launch Project Hub?')) return;
+    if (!window.confirm('Accept this quotation and hire this professional?')) return;
     try {
-      const res = await api.post<{ ok: boolean; projectId: number | null }>(
+      await api.post<{ ok: boolean; projectId: number | null }>(
         `/api/work/quotations/${quoteId}/accept`
       );
-      toast.success('Quotation accepted! Project workspace initialized.');
-      if (res.projectId) {
-        navigate(`/projects/${res.projectId}`);
-      } else {
-        loadJob();
-      }
+      toast.success('Quotation accepted and professional hired.');
+      loadJob();
     } catch (err: any) {
       toast.error(err.message || 'Could not accept quotation.');
     }
@@ -427,9 +422,8 @@ export function JobDetailPage() {
 
             <div className="mt-6 space-y-3">
               {linkedProject && (
-                <Link to={`/projects/${linkedProject.id}`} className="btn-primary w-full py-3">
-                  <FolderKanban className="h-4 w-4" />
-                  Open Linked Project Hub ({linkedProject.progress_percent}%)
+                <Link to="/dashboard" className="btn-primary w-full py-3">
+                  Quotation Awarded ({linkedProject.status})
                 </Link>
               )}
 

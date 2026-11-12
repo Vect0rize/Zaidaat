@@ -16,7 +16,7 @@ const PLAN_CATALOG = [
     roleScope: 'customer',
     monthlyInr: 0,
     yearlyInr: 0,
-    tagline: 'Buy, rent, list properties directly & coordinate work through Project Hub.',
+    tagline: 'Buy, rent, list properties directly & collect itemized work quotations.',
     features: [
       'Browse All-India residential, commercial & plot listings',
       'Publish up to 3 active property listings',
@@ -49,7 +49,7 @@ const PLAN_CATALOG = [
       'Priority KYC & credential review queue',
       'Unlimited job applications & quotations',
       'Expanded portfolio project showcase',
-      'Multi-member Project Hub collaboration',
+      'Direct multi-site work coordination',
     ],
   },
   {
@@ -61,7 +61,7 @@ const PLAN_CATALOG = [
     tagline: 'For property developers, real estate agencies & turnkey contracting firms.',
     features: [
       'Higher active property listing capacity',
-      'Multi-project hub & team oversight',
+      'Multi-site vendor & team oversight',
       'Priority document verification turnaround',
       'Enquiry management & structured exports',
     ],

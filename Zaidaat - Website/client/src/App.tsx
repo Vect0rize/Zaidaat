@@ -16,8 +16,6 @@ import { BecomeProfessionalPage } from './pages/BecomeProfessionalPage';
 import { FindWorkPage } from './pages/FindWorkPage';
 import { PostJobPage } from './pages/PostJobPage';
 import { JobDetailPage } from './pages/JobDetailPage';
-import { ProjectsPage } from './pages/ProjectsPage';
-import { ProjectDetailPage } from './pages/ProjectDetailPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { AdminPage } from './pages/AdminPage';
 import { MessagesPage } from './pages/MessagesPage';
@@ -56,9 +54,8 @@ export default function App() {
                 <Route path="/post-job" element={<PostJobPage />} />
                 <Route path="/jobs/:id" element={<JobDetailPage />} />
 
-                {/* Project Hub */}
-                <Route path="/projects" element={<ProjectsPage />} />
-                <Route path="/projects/:id" element={<ProjectDetailPage />} />
+                <Route path="/projects" element={<Navigate to="/dashboard" replace />} />
+                <Route path="/projects/:id" element={<Navigate to="/dashboard" replace />} />
 
                 {/* Dashboards, Messaging, Plans & Auth */}
                 <Route path="/dashboard" element={<DashboardPage />} />

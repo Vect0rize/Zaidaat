@@ -508,7 +508,7 @@ export function ProfessionalDetailPage() {
             <div className="mt-5 rounded-lg border border-slate-200 bg-slate-50 p-3.5 text-xs text-slate-600">
               <p className="font-bold text-slate-900">Protected Hiring on ZAIDAAT</p>
               <p className="mt-1 leading-relaxed">
-                Receive itemized quotes before committing. Acceptance automatically opens a milestone workspace in Project Hub.
+                Receive itemized quotes before committing and hire directly with verified records.
               </p>
             </div>
           </div>

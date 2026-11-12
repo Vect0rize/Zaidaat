@@ -55,6 +55,8 @@ export const config = {
     clientId: process.env.GOOGLE_CLIENT_ID || '',
     clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
     redirectUri: process.env.GOOGLE_REDIRECT_URI || 'http://localhost:3000/api/auth/google/callback',
+    hasExplicitRedirectUri: Boolean(process.env.GOOGLE_REDIRECT_URI),
+    hasExplicitAppUrl: Boolean(process.env.APP_URL),
     configured: Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET),
   },
   sms: {

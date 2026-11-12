@@ -6,7 +6,7 @@ export function errorHandler(err: unknown, _req: Request, res: Response, _next: 
   if (err instanceof ZodError) {
     res.status(400).json({
       error: 'Validation failed',
-      details: err.errors.map((e) => ({ path: e.path.join('.'), message: e.message })),
+      details: err.issues.map((e) => ({ path: e.path.join('.'), message: e.message })),
     });
     return;
   }

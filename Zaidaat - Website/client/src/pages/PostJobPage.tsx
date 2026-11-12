@@ -90,7 +90,7 @@ export function PostJobPage() {
           <Briefcase className="mx-auto h-12 w-12 text-brand-600" />
           <h1 className="mt-4 text-2xl font-extrabold text-slate-900">Log in to Post a Work Requirement</h1>
           <p className="mt-2 text-sm text-slate-500">
-            Describe your construction, repair, or interior job, receive multiple quotations, compare pros, and manage execution in Project Hub.
+            Describe your construction, repair, or interior job, receive multiple quotations, compare pros, and hire directly.
           </p>
           <div className="mt-6 flex justify-center gap-3">
             <Link to="/login" className="btn-primary">

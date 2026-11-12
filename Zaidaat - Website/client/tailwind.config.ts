@@ -24,7 +24,7 @@ export default {
         canvas: '#F8FAFC',
       },
       fontFamily: {
-        sans: ['"Plus Jakarta Sans"', 'Inter', 'system-ui', '-apple-system', 'sans-serif'],
+        sans: ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
       },
       boxShadow: {
         subtle: '0 1px 2px rgba(15, 23, 42, 0.04)',
