@@ -111,8 +111,9 @@ export function HomePage() {
                 Sell, buy or rent property, and hire verified build traders across India.
               </h1>
               <p className="mt-3 max-w-2xl text-[15px] leading-relaxed text-slate-600">
-                Search residential and commercial properties across 28 States and 8 Union Territories, compare
-                document-verified contractors and architects, and collect itemized work quotes directly.
+                Buy, sell, or rent flats, houses, residential plots, and commercial real estate across India with
+                free property listings, or hire verified contractors, architects, and skilled trades with direct
+                quotes.
               </p>
 
               {/* Unified Search Panel */}

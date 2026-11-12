@@ -8,14 +8,53 @@ import type { Property } from '../types';
 import { formatINRWords } from '../lib/format';
 import { LocationSelector } from '../components/common/LocationSelector';
 
-type AreaUnit = 'sqft' | 'sqyd' | 'sqm' | 'acre' | 'cent';
+type AreaUnit =
+  | 'sqft'
+  | 'sqyd'
+  | 'sqm'
+  | 'acre'
+  | 'hectare'
+  | 'cent'
+  | 'guntha'
+  | 'are'
+  | 'ground'
+  | 'marla'
+  | 'kanal'
+  | 'killa'
+  | 'murabba'
+  | 'biswa'
+  | 'biswansi'
+  | 'bigha'
+  | 'katha'
+  | 'decimal'
+  | 'chatak'
+  | 'ankanam'
+  | 'lecha'
+  | 'kranta';
 
 const AREA_UNITS: Record<AreaUnit, { label: string; toSqft: number }> = {
   sqft: { label: 'sq.ft', toSqft: 1 },
-  sqyd: { label: 'sq.yd (Gaj)', toSqft: 9 },
+  sqyd: { label: 'sq.yd / Gaj / Var', toSqft: 9 },
   sqm: { label: 'sq.m', toSqft: 10.7639104 },
   acre: { label: 'Acres', toSqft: 43560 },
+  hectare: { label: 'Hectares', toSqft: 107639.104 },
   cent: { label: 'Cents', toSqft: 435.6 },
+  guntha: { label: 'Guntha / Gunta', toSqft: 1089 },
+  are: { label: 'Are (R)', toSqft: 1076.39104 },
+  ground: { label: 'Ground', toSqft: 2400 },
+  marla: { label: 'Marla', toSqft: 272.25 },
+  kanal: { label: 'Kanal', toSqft: 5445 },
+  killa: { label: 'Killa / Ghumaon', toSqft: 43560 },
+  murabba: { label: 'Murabba', toSqft: 1089000 },
+  biswa: { label: 'Biswa', toSqft: 1361.25 },
+  biswansi: { label: 'Biswansi', toSqft: 68.0625 },
+  bigha: { label: 'Bigha (Pucca)', toSqft: 27225 },
+  katha: { label: 'Katha', toSqft: 1361.25 },
+  decimal: { label: 'Decimal / Dismil', toSqft: 435.6 },
+  chatak: { label: 'Chatak', toSqft: 45 },
+  ankanam: { label: 'Ankanam', toSqft: 72 },
+  lecha: { label: 'Lecha', toSqft: 144 },
+  kranta: { label: 'Dhur / Kranta', toSqft: 68.0625 },
 };
 
 const AMENITY_OPTIONS = [
@@ -77,7 +116,7 @@ export function SellPropertyPage() {
   const [pincode, setPincode] = useState('');
   const [reraId, setReraId] = useState('');
   const [description, setDescription] = useState('');
-  const [amenities, setAmenities] = useState<string[]>(['Covered Parking', '24x7 Security']);
+  const [amenities, setAmenities] = useState<string[]>([]);
   const [mediaUrls, setMediaUrls] = useState<Array<{ url: string; mediaType: 'image' | 'video' }>>([]);
   const [status, setStatus] = useState('active');
 
@@ -402,7 +441,7 @@ export function SellPropertyPage() {
                   type="number"
                   required
                   step="any"
-                  min={isPlotOrLand && areaUnit !== 'sqft' ? 0.01 : 50}
+                  min={areaUnit !== 'sqft' ? 0.01 : 50}
                   value={areaSqft}
                   onChange={(e) => setAreaSqft(e.target.value)}
                   placeholder={isPlotOrLand ? '200' : '1450'}
@@ -412,7 +451,7 @@ export function SellPropertyPage() {
                   value={areaUnit}
                   onChange={(e) => setAreaUnit(e.target.value as AreaUnit)}
                   aria-label="Area unit"
-                  className="input-field w-32 shrink-0"
+                  className="input-field w-40 shrink-0 sm:w-44"
                 >
                   {(Object.keys(AREA_UNITS) as AreaUnit[]).map((u) => (
                     <option key={u} value={u}>
