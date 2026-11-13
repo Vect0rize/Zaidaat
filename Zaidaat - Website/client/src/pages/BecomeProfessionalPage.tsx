@@ -25,8 +25,8 @@ export function BecomeProfessionalPage() {
   const [headline, setHeadline] = useState('');
   const [bio, setBio] = useState('');
   const [photoUrl, setPhotoUrl] = useState('');
-  const [stateVal, setStateVal] = useState('Maharashtra');
-  const [cityVal, setCityVal] = useState('Mumbai');
+  const [stateVal, setStateVal] = useState('');
+  const [cityVal, setCityVal] = useState('');
   const [localitiesText, setLocalitiesText] = useState('');
   const [serviceRadiusKm, setServiceRadiusKm] = useState('25');
   const [experienceYears, setExperienceYears] = useState('5');

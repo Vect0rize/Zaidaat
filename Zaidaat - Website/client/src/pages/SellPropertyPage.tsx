@@ -152,20 +152,20 @@ export function SellPropertyPage() {
   const [propertyCategory, setPropertyCategory] = useState<'residential' | 'commercial'>('residential');
   const [propertyType, setPropertyType] = useState('apartment');
   const [price, setPrice] = useState('');
-  const [securityDeposit, setSecurityDeposit] = useState('0');
-  const [maintenanceMonthly, setMaintenanceMonthly] = useState('0');
+  const [securityDeposit, setSecurityDeposit] = useState('');
+  const [maintenanceMonthly, setMaintenanceMonthly] = useState('');
   const [areaSqft, setAreaSqft] = useState('');
   const [areaUnit, setAreaUnit] = useState<AreaUnit>('sqft');
-  const [bedrooms, setBedrooms] = useState('2');
-  const [bathrooms, setBathrooms] = useState('2');
-  const [balconies, setBalconies] = useState('1');
-  const [furnishing, setFurnishing] = useState<'unfurnished' | 'semi_furnished' | 'fully_furnished'>('semi_furnished');
-  const [facing, setFacing] = useState('East');
+  const [bedrooms, setBedrooms] = useState('');
+  const [bathrooms, setBathrooms] = useState('');
+  const [balconies, setBalconies] = useState('');
+  const [furnishing, setFurnishing] = useState<'' | 'unfurnished' | 'semi_furnished' | 'fully_furnished'>('');
+  const [facing, setFacing] = useState('');
   const [floorNumber, setFloorNumber] = useState('');
   const [totalFloors, setTotalFloors] = useState('');
-  const [possessionStatus, setPossessionStatus] = useState<'ready_to_move' | 'under_construction'>('ready_to_move');
-  const [stateVal, setStateVal] = useState('Maharashtra');
-  const [cityVal, setCityVal] = useState('Mumbai');
+  const [possessionStatus, setPossessionStatus] = useState<'' | 'ready_to_move' | 'under_construction'>('');
+  const [stateVal, setStateVal] = useState('');
+  const [cityVal, setCityVal] = useState('');
   const [localityVal, setLocalityVal] = useState('');
   const [addressLine, setAddressLine] = useState('');
   const [pincode, setPincode] = useState('');
@@ -228,13 +228,14 @@ export function SellPropertyPage() {
           .filter((f) => f.mediaType === 'image' || f.mediaType === 'video')
           .map((f) => ({ url: f.url, mediaType: f.mediaType as 'image' | 'video' })),
       ]);
-      toast.success(`${files.length} media file(s) uploaded.`);
+      toast.success(`${files.length} media file(s) uploaded successfully.`);
     } catch (err: any) {
       const msg = err.message || 'Upload failed';
       setError(msg);
       toast.error(msg);
     } finally {
       setUploading(false);
+      e.target.value = '';
     }
   };
 
@@ -257,9 +258,10 @@ export function SellPropertyPage() {
       setTotalFloors('');
       setAmenities((prev) => prev.filter((am) => PLOT_AMENITY_OPTIONS.includes(am)));
     } else if (bedrooms === '0' && bathrooms === '0') {
-      setBedrooms('2');
-      setBathrooms('2');
-      setBalconies('1');
+      setBedrooms('');
+      setBathrooms('');
+      setBalconies('');
+      setFurnishing('');
     }
   };
 
@@ -284,11 +286,11 @@ export function SellPropertyPage() {
         bedrooms: isPlotOrLand ? 0 : Number(bedrooms || 0),
         bathrooms: isPlotOrLand ? 0 : Number(bathrooms || 0),
         balconies: isPlotOrLand ? 0 : Number(balconies || 0),
-        furnishing: isPlotOrLand ? 'unfurnished' : furnishing,
-        facing,
+        furnishing: isPlotOrLand ? 'unfurnished' : (furnishing || 'unfurnished'),
+        facing: facing || null,
         floorNumber: !isPlotOrLand && floorNumber ? Number(floorNumber) : null,
         totalFloors: !isPlotOrLand && totalFloors ? Number(totalFloors) : null,
-        possessionStatus,
+        possessionStatus: possessionStatus || 'ready_to_move',
         state: stateVal,
         city: cityVal,
         locality: localityVal,
@@ -551,19 +553,44 @@ export function SellPropertyPage() {
             <div className="grid gap-4 sm:grid-cols-4">
               <div>
                 <label className="mb-1 block text-xs font-semibold text-slate-600">Bedrooms (BHK)</label>
-                <input type="number" min={0} max={25} value={bedrooms} onChange={(e) => setBedrooms(e.target.value)} className="input-field" />
+                <input
+                  type="number"
+                  min={0}
+                  max={25}
+                  value={bedrooms}
+                  onChange={(e) => setBedrooms(e.target.value)}
+                  placeholder="e.g. 2"
+                  className="input-field"
+                />
               </div>
               <div>
                 <label className="mb-1 block text-xs font-semibold text-slate-600">Bathrooms</label>
-                <input type="number" min={0} max={25} value={bathrooms} onChange={(e) => setBathrooms(e.target.value)} className="input-field" />
+                <input
+                  type="number"
+                  min={0}
+                  max={25}
+                  value={bathrooms}
+                  onChange={(e) => setBathrooms(e.target.value)}
+                  placeholder="e.g. 2"
+                  className="input-field"
+                />
               </div>
               <div>
                 <label className="mb-1 block text-xs font-semibold text-slate-600">Balconies</label>
-                <input type="number" min={0} max={20} value={balconies} onChange={(e) => setBalconies(e.target.value)} className="input-field" />
+                <input
+                  type="number"
+                  min={0}
+                  max={20}
+                  value={balconies}
+                  onChange={(e) => setBalconies(e.target.value)}
+                  placeholder="e.g. 1"
+                  className="input-field"
+                />
               </div>
               <div>
                 <label className="mb-1 block text-xs font-semibold text-slate-600">Furnishing</label>
                 <select value={furnishing} onChange={(e) => setFurnishing(e.target.value as any)} className="input-field">
+                  <option value="">Select Furnishing</option>
                   <option value="unfurnished">Unfurnished</option>
                   <option value="semi_furnished">Semi Furnished</option>
                   <option value="fully_furnished">Fully Furnished</option>
@@ -575,23 +602,24 @@ export function SellPropertyPage() {
           <div className={`grid gap-4 ${isPlotOrLand ? 'sm:grid-cols-2' : 'sm:grid-cols-4'}`}>
             <div>
               <label className="mb-1 block text-xs font-semibold text-slate-600">Facing</label>
-              <input type="text" value={facing} onChange={(e) => setFacing(e.target.value)} placeholder="East / North-East" className="input-field" />
+              <input type="text" value={facing} onChange={(e) => setFacing(e.target.value)} placeholder="e.g. East / North-East" className="input-field" />
             </div>
             {!isPlotOrLand && (
               <>
                 <div>
                   <label className="mb-1 block text-xs font-semibold text-slate-600">Floor No.</label>
-                  <input type="number" min={0} value={floorNumber} onChange={(e) => setFloorNumber(e.target.value)} className="input-field" />
+                  <input type="number" min={0} value={floorNumber} onChange={(e) => setFloorNumber(e.target.value)} placeholder="e.g. 4" className="input-field" />
                 </div>
                 <div>
                   <label className="mb-1 block text-xs font-semibold text-slate-600">Total Floors</label>
-                  <input type="number" min={0} value={totalFloors} onChange={(e) => setTotalFloors(e.target.value)} className="input-field" />
+                  <input type="number" min={0} value={totalFloors} onChange={(e) => setTotalFloors(e.target.value)} placeholder="e.g. 12" className="input-field" />
                 </div>
               </>
             )}
             <div>
               <label className="mb-1 block text-xs font-semibold text-slate-600">Possession</label>
               <select value={possessionStatus} onChange={(e) => setPossessionStatus(e.target.value as any)} className="input-field">
+                <option value="">Select Possession</option>
                 <option value="ready_to_move">{isPlotOrLand ? 'Immediate / Clear Title' : 'Ready to Move'}</option>
                 <option value="under_construction">{isPlotOrLand ? 'Under Development' : 'Under Construction'}</option>
               </select>
@@ -649,17 +677,30 @@ export function SellPropertyPage() {
         </div>
 
         <div className="card space-y-4 p-6">
-          <h2 className="text-lg font-bold text-slate-900">4. Photos &amp; Video Walkthrough</h2>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h2 className="text-lg font-bold text-slate-900">4. Photos &amp; Video Walkthrough</h2>
+              <p className="text-xs text-slate-500">Upload high-resolution property photos and MP4/WEBM property walkthrough videos.</p>
+            </div>
+            {mediaUrls.length > 0 && (
+              <span className="rounded-full bg-brand-50 px-2.5 py-1 text-xs font-semibold text-brand-700">
+                {mediaUrls.filter((m) => m.mediaType === 'image').length} Photo(s), {mediaUrls.filter((m) => m.mediaType === 'video').length} Video(s)
+              </span>
+            )}
+          </div>
+
           <label className="flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 px-6 py-8 text-center transition hover:border-brand-500 hover:bg-brand-50/30">
             <Upload className="h-8 w-8 text-brand-600" />
             <span className="mt-2 text-sm font-bold text-slate-800">
-              {uploading ? 'Uploading files...' : 'Click to upload Property Images or MP4/WEBM Video'}
+              {uploading ? 'Uploading media files...' : 'Click to select Property Photos or Walkthrough Videos'}
             </span>
-            <span className="mt-1 text-xs text-slate-500">JPG, PNG, WEBP, MP4 up to 10 MB per file</span>
+            <span className="mt-1 text-xs text-slate-500">
+              Supports JPG, PNG, WEBP, and MP4 / WEBM / MOV videos up to 10 MB each
+            </span>
             <input
               type="file"
               multiple
-              accept="image/*,video/mp4,video/webm"
+              accept="image/*,video/mp4,video/webm,video/quicktime,video/*"
               onChange={handleFileUpload}
               className="hidden"
             />
@@ -668,16 +709,26 @@ export function SellPropertyPage() {
           {mediaUrls.length > 0 && (
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               {mediaUrls.map((m, idx) => (
-                <div key={`${m.url}-${idx}`} className="group relative overflow-hidden rounded-xl border border-slate-200">
+                <div key={`${m.url}-${idx}`} className="group relative overflow-hidden rounded-xl border border-slate-200 bg-slate-900">
                   {m.mediaType === 'video' ? (
-                    <video src={m.url} className="h-28 w-full object-cover" />
+                    <div className="relative h-28 w-full bg-slate-950">
+                      <video src={m.url} controls className="h-28 w-full object-cover" />
+                      <span className="pointer-events-none absolute bottom-1.5 left-1.5 rounded bg-brand-600 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white">
+                        Video
+                      </span>
+                    </div>
                   ) : (
-                    <img src={m.url} alt={`Uploaded property photo ${idx + 1}`} className="h-28 w-full object-cover" />
+                    <div className="relative h-28 w-full">
+                      <img src={m.url} alt={`Uploaded property photo ${idx + 1}`} className="h-28 w-full object-cover" />
+                      <span className="pointer-events-none absolute bottom-1.5 left-1.5 rounded bg-black/60 px-1.5 py-0.5 text-[10px] font-medium text-white">
+                        Photo {idx + 1}
+                      </span>
+                    </div>
                   )}
                   <button
                     type="button"
                     onClick={() => setMediaUrls((prev) => prev.filter((_, i) => i !== idx))}
-                    className="absolute right-1.5 top-1.5 rounded-lg bg-slate-900/80 p-1.5 text-white hover:bg-rose-600"
+                    className="absolute right-1.5 top-1.5 rounded-lg bg-slate-900/80 p-1.5 text-white shadow hover:bg-rose-600"
                     aria-label="Remove media"
                   >
                     <Trash2 className="h-3.5 w-3.5" />

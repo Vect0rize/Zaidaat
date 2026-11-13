@@ -32,7 +32,7 @@ export function usePageMeta({ title, description, canonicalPath, type = 'website
     document.title = title;
     const desc =
       description ||
-      'Buy, sell, or rent flats, houses, residential plots, and commercial real estate across India on ZAIDAAT. Hire verified contractors and architects directly.';
+      'Buy, sell, or rent flats, houses, residential plots, and commercial real estate across India with free property listings on ZAIDAAT.';
     const origin = window.location.origin;
     const canonical = `${origin}${canonicalPath ?? window.location.pathname}`;
 

@@ -29,7 +29,7 @@ export function HomePage() {
   usePageMeta({
     title: 'ZAIDAAT — All-India Property & Verified Construction Trade Marketplace',
     description:
-      'Buy, sell, or rent flats, houses, residential plots, and commercial real estate across India with free listings, or hire verified contractors and architects.',
+      'Buy, sell, or rent flats, houses, residential plots, and commercial real estate across India with free property listings.',
     canonicalPath: '/',
   });
   const navigate = useNavigate();
@@ -126,12 +126,10 @@ export function HomePage() {
             <div className="min-w-0 lg:col-span-7">
               <p className="section-kicker">All-India Property &amp; Trade Network</p>
               <h1 className="mt-2 text-3xl font-bold tracking-tight text-navy-900 sm:text-[40px] sm:leading-[1.12]">
-                Sell, buy or rent property, and hire verified build traders across India.
+                Sell, buy or rent property, and hire verified build traders.
               </h1>
               <p className="mt-3 max-w-2xl text-[15px] leading-relaxed text-slate-600">
-                Buy, sell, or rent flats, houses, residential plots, and commercial real estate across India with
-                free property listings, or hire verified contractors, architects, and skilled trades with direct
-                quotes.
+                Buy, sell, or rent flats, houses, residential plots, and commercial real estate across India with free property listings.
               </p>
 
               {/* Unified Search Panel */}

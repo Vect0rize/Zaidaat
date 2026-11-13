@@ -8,6 +8,17 @@ import { kycUploadMiddleware, uploadMiddleware, verifyMagicBytes } from '../midd
 
 export const uploadsRouter = Router();
 
+function determineMediaType(mimeType: string, filename: string): 'image' | 'video' | 'document' {
+  if (mimeType.startsWith('image/')) return 'image';
+  if (mimeType.startsWith('video/')) return 'video';
+  if (mimeType === 'application/pdf') return 'document';
+  const ext = path.extname(filename).toLowerCase();
+  if (['.jpg', '.jpeg', '.png', '.webp', '.gif'].includes(ext)) return 'image';
+  if (['.mp4', '.webm', '.mov'].includes(ext)) return 'video';
+  if (['.pdf'].includes(ext)) return 'document';
+  return 'image';
+}
+
 function cleanupFiles(files: Express.Multer.File[]): void {
   for (const f of files) {
     try {
@@ -39,6 +50,7 @@ uploadsRouter.post('/', requireAuth, uploadMiddleware.array('files', 8), (req, r
     url: `/uploads/user/${file.filename}`,
     originalName: file.originalname,
     mimeType: file.mimetype,
+    mediaType: determineMediaType(file.mimetype, file.filename),
     sizeBytes: file.size,
   }));
 
@@ -66,6 +78,7 @@ uploadsRouter.post('/kyc', requireAuth, kycUploadMiddleware.array('files', 4), (
     url: `/api/uploads/kyc/${file.filename}`,
     originalName: file.originalname,
     mimeType: file.mimetype,
+    mediaType: determineMediaType(file.mimetype, file.filename),
     sizeBytes: file.size,
   }));
 

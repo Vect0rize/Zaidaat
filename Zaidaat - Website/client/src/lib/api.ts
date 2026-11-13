@@ -54,16 +54,29 @@ export const api = {
   delete: <T>(url: string) => request<T>(url, { method: 'DELETE' }),
 };
 
-export async function uploadFiles(files: FileList | File[]): Promise<Array<{ url: string; mediaType: 'image' | 'video' | 'document'; originalName: string }>> {
-  const form = new FormData();
-  Array.from(files).forEach((f) => form.append('files', f));
-  const res = await api.post<{ files: Array<{ url: string; mediaType: 'image' | 'video' | 'document'; originalName: string }> }>('/api/uploads', form);
-  return res.files;
+function inferMediaType(url: string, mimeType?: string, mediaType?: string): 'image' | 'video' | 'document' {
+  if (mediaType === 'image' || mediaType === 'video' || mediaType === 'document') return mediaType;
+  if (mimeType?.startsWith('video/') || /\.(mp4|webm|mov)$/i.test(url)) return 'video';
+  if (mimeType === 'application/pdf' || /\.pdf$/i.test(url)) return 'document';
+  return 'image';
 }
 
-export async function uploadKycFiles(files: FileList | File[]): Promise<Array<{ url: string; mediaType: 'image' | 'video' | 'document'; originalName: string }>> {
+export async function uploadFiles(files: FileList | File[]): Promise<Array<{ url: string; mediaType: 'image' | 'video' | 'document'; originalName: string; mimeType?: string }>> {
   const form = new FormData();
   Array.from(files).forEach((f) => form.append('files', f));
-  const res = await api.post<{ files: Array<{ url: string; mediaType: 'image' | 'video' | 'document'; originalName: string }> }>('/api/uploads/kyc', form);
-  return res.files;
+  const res = await api.post<{ files: Array<{ url: string; mediaType?: 'image' | 'video' | 'document'; originalName: string; mimeType?: string }> }>('/api/uploads', form);
+  return res.files.map((f) => ({
+    ...f,
+    mediaType: inferMediaType(f.url, f.mimeType, f.mediaType),
+  }));
+}
+
+export async function uploadKycFiles(files: FileList | File[]): Promise<Array<{ url: string; mediaType: 'image' | 'video' | 'document'; originalName: string; mimeType?: string }>> {
+  const form = new FormData();
+  Array.from(files).forEach((f) => form.append('files', f));
+  const res = await api.post<{ files: Array<{ url: string; mediaType?: 'image' | 'video' | 'document'; originalName: string; mimeType?: string }> }>('/api/uploads/kyc', form);
+  return res.files.map((f) => ({
+    ...f,
+    mediaType: inferMediaType(f.url, f.mimeType, f.mediaType),
+  }));
 }

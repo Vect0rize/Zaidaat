@@ -29,6 +29,7 @@ export function LocationSelector({
   const [states, setStates] = useState<Array<{ state: string; region_zone: string }>>([]);
   const [cities, setCities] = useState<Array<{ city: string; state: string }>>([]);
   const [localities, setLocalities] = useState<Array<{ locality: string; pincode: string | null }>>([]);
+  const [isCustomCity, setIsCustomCity] = useState(false);
 
   useEffect(() => {
     api
@@ -38,6 +39,7 @@ export function LocationSelector({
   }, []);
 
   useEffect(() => {
+    setIsCustomCity(false);
     const query = stateValue ? `?state=${encodeURIComponent(stateValue)}` : '';
     api
       .get<{ cities: Array<{ city: string; state: string }> }>(`/api/locations/cities${query}`)
@@ -91,21 +93,49 @@ export function LocationSelector({
       <div>
         {!compact && <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-600">City</label>}
         {allowCustom ? (
-          <>
-            <input
-              list={citiesListId}
-              value={cityValue}
-              onChange={(e) => onChange({ state: stateValue, city: e.target.value, locality: '' })}
-              placeholder="Select or type city..."
+          <div>
+            <select
+              value={
+                isCustomCity
+                  ? '__custom__'
+                  : cities.some((c) => c.city.toLowerCase() === (cityValue || '').toLowerCase())
+                    ? cityValue
+                    : cityValue
+                      ? '__custom__'
+                      : ''
+              }
+              onChange={(e) => {
+                if (e.target.value === '__custom__') {
+                  setIsCustomCity(true);
+                  onChange({ state: stateValue, city: '', locality: '' });
+                } else {
+                  setIsCustomCity(false);
+                  onChange({ state: stateValue, city: e.target.value, locality: '' });
+                }
+              }}
               className="input-field"
-              aria-label="City"
-            />
-            <datalist id={citiesListId}>
+              aria-label="Select City"
+            >
+              <option value="">{stateValue ? `Select Famous City in ${stateValue}` : 'Select City'}</option>
               {cities.map((c) => (
-                <option key={`${c.state}-${c.city}`} value={c.city} />
+                <option key={`${c.state}-${c.city}`} value={c.city}>
+                  {c.city}
+                </option>
               ))}
-            </datalist>
-          </>
+              <option value="__custom__">+ Other / Type Custom City</option>
+            </select>
+            {(isCustomCity || (cityValue && !cities.some((c) => c.city.toLowerCase() === cityValue.toLowerCase()))) && (
+              <input
+                type="text"
+                value={cityValue}
+                onChange={(e) => onChange({ state: stateValue, city: e.target.value, locality: '' })}
+                placeholder="Type city or town name..."
+                className="input-field mt-2"
+                aria-label="Custom City Name"
+                autoFocus
+              />
+            )}
+          </div>
         ) : (
           <select
             value={cityValue}
@@ -113,7 +143,7 @@ export function LocationSelector({
             className="input-field"
             aria-label="Select City"
           >
-            <option value="">All Cities</option>
+            <option value="">{stateValue ? `All Cities in ${stateValue}` : 'All Cities'}</option>
             {cities.map((c) => (
               <option key={`${c.state}-${c.city}`} value={c.city}>
                 {c.city}
