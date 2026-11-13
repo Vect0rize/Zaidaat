@@ -6,6 +6,7 @@ import {
   Briefcase,
   Building2,
   CheckCircle2,
+  Compass,
   FileCheck2,
   Lock,
   MapPin,
@@ -33,7 +34,6 @@ export function HomePage() {
     canonicalPath: '/',
   });
   const navigate = useNavigate();
-  const [heroTab, setHeroTab] = useState<'buy' | 'rent' | 'professionals' | 'work'>('buy');
   const [propertyFilterTab, setPropertyFilterTab] = useState<'all' | 'buy' | 'rent'>('all');
   const [showAllTrades, setShowAllTrades] = useState(false);
   const [searchCity, setSearchCity] = useState('');
@@ -95,10 +95,7 @@ export function HomePage() {
     if (searchQuery.trim()) params.set('q', searchQuery.trim());
     const qs = params.toString() ? `?${params.toString()}` : '';
 
-    if (heroTab === 'buy') navigate(`/buy${qs}`);
-    else if (heroTab === 'rent') navigate(`/rent${qs}`);
-    else if (heroTab === 'professionals') navigate(`/professionals${qs}`);
-    else navigate(`/find-work${qs}`);
+    navigate(`/properties${qs}`);
   };
 
   const handleTogglePropertySave = (id: number, saved: boolean) => {
@@ -133,36 +130,23 @@ export function HomePage() {
               </p>
 
               {/* Unified Search Panel */}
-              <div className="mt-7 rounded-lg border border-slate-200 bg-slate-50/70 p-4">
-                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-3">
-                  <div className="flex flex-wrap gap-1" role="tablist" aria-label="Marketplace search mode">
-                    {[
-                      { key: 'buy', label: 'Buy' },
-                      { key: 'rent', label: 'Rent' },
-                      { key: 'professionals', label: 'Find Professionals' },
-                      { key: 'work', label: 'Find Work' },
-                    ].map((t) => (
-                      <button
-                        key={t.key}
-                        type="button"
-                        role="tab"
-                        aria-selected={heroTab === t.key}
-                        onClick={() => setHeroTab(t.key as any)}
-                        className={`rounded-md px-3 py-1.5 text-xs font-semibold transition sm:text-sm ${
-                          heroTab === t.key
-                            ? 'bg-navy-900 text-white'
-                            : 'text-slate-600 hover:bg-white hover:text-slate-900'
-                        }`}
-                      >
-                        {t.label}
-                      </button>
-                    ))}
-                  </div>
+              <div className="mt-7 rounded-xl border border-slate-200 bg-slate-50/70 p-4">
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-3">
+                  {/* Long Pill-Shaped Explore Button */}
+                  <Link
+                    to="/properties"
+                    className="group inline-flex items-center gap-2.5 rounded-full bg-navy-900 px-7 py-2 text-xs font-bold tracking-wide text-white shadow-sm transition hover:bg-navy-800 hover:shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy-900 sm:text-sm"
+                  >
+                    <Compass className="h-4 w-4 text-brand-400" />
+                    <span>Explore</span>
+                    <ArrowRight className="h-3.5 w-3.5 text-slate-400 transition-transform group-hover:translate-x-0.5" />
+                  </Link>
 
-                  <div className="flex flex-wrap items-center gap-3 text-xs font-semibold">
+                  {/* Clean uncrowded action buttons */}
+                  <div className="flex flex-wrap items-center gap-2.5 sm:gap-3 text-xs sm:text-sm font-semibold">
                     <Link
                       to="/sell"
-                      className="inline-flex items-center gap-1.5 rounded-full bg-brand-600 px-3 py-1 text-white shadow-sm ring-2 ring-brand-200 transition hover:bg-brand-700"
+                      className="inline-flex items-center gap-1.5 rounded-full bg-brand-600 px-4 py-1.5 text-white shadow-sm ring-1 ring-brand-700/20 transition hover:bg-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
                     >
                       <span>List Property</span>
                       <span className="rounded-full bg-emerald-400 px-1.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-navy-950">
@@ -170,8 +154,12 @@ export function HomePage() {
                       </span>
                       <span aria-hidden="true">&rarr;</span>
                     </Link>
-                    <Link to="/post-job" className="text-navy-900 hover:text-brand-600 hover:underline">
-                      Post Work &rarr;
+                    <Link
+                      to="/post-job"
+                      className="inline-flex items-center gap-1 rounded-full border border-slate-300 bg-white px-3.5 py-1.5 text-slate-700 transition hover:border-slate-400 hover:bg-slate-50 hover:text-brand-600"
+                    >
+                      <span>Post Work</span>
+                      <span aria-hidden="true">&rarr;</span>
                     </Link>
                   </div>
                 </div>
@@ -215,13 +203,7 @@ export function HomePage() {
                       type="text"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder={
-                        heroTab === 'professionals'
-                          ? 'Carpenter, Architect, Thekedar...'
-                          : heroTab === 'work'
-                          ? 'Modular kitchen, civil work...'
-                          : '3 BHK flat, villa, commercial shop...'
-                      }
+                      placeholder="3 BHK flat, villa, plot, commercial shop..."
                       className="input-field bg-white pl-9"
                       aria-label="Search query"
                     />
@@ -235,21 +217,13 @@ export function HomePage() {
                 </form>
 
                 <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-slate-500">
-                  <span className="font-semibold text-slate-700">Cities:</span>
+                  <span className="font-semibold text-slate-700">Popular Cities:</span>
                   {popularCities.map((city) => (
                     <button
                       key={city}
                       type="button"
                       onClick={() => {
-                        const targetRoute =
-                          heroTab === 'professionals'
-                            ? '/professionals'
-                            : heroTab === 'work'
-                            ? '/find-work'
-                            : heroTab === 'rent'
-                            ? '/rent'
-                            : '/buy';
-                        navigate(`${targetRoute}?city=${encodeURIComponent(city)}`);
+                        navigate(`/properties?city=${encodeURIComponent(city)}`);
                       }}
                       className="font-medium text-slate-600 transition hover:text-brand-600 hover:underline"
                     >
