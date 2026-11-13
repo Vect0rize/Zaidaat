@@ -81,8 +81,8 @@ export function LocationSelector({
             aria-label="Select State or Union Territory"
           >
             <option value="">All India States & UTs</option>
-            {states.map((s) => (
-              <option key={s.state} value={s.state}>
+            {states.map((s, idx) => (
+              <option key={`${s.state}-${idx}`} value={s.state}>
                 {s.state}
               </option>
             ))}

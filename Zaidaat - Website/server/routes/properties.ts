@@ -430,13 +430,15 @@ propertiesRouter.post('/', requireAuth, (req, res, next) => {
         `INSERT INTO property_images (property_id, file_url, caption, media_type, is_primary, sort_order)
          VALUES (?, ?, ?, ?, ?, ?)`
       );
+      const firstImageIdx = media.findIndex((m) => m.mediaType === 'image');
+      const primaryIdx = firstImageIdx >= 0 ? firstImageIdx : 0;
       media.forEach((m, idx) => {
         insImg.run(
           pid,
           cleanText(m.url, 300),
           cleanOptionalText(m.caption, 160),
           m.mediaType,
-          idx === 0 ? 1 : 0,
+          idx === primaryIdx ? 1 : 0,
           idx
         );
       });
@@ -542,13 +544,15 @@ propertiesRouter.put('/:id', requireAuth, (req, res, next) => {
           `INSERT INTO property_images (property_id, file_url, caption, media_type, is_primary, sort_order)
            VALUES (?, ?, ?, ?, ?, ?)`
         );
+        const firstImageIdx = parsed.mediaUrls.findIndex((m) => m.mediaType === 'image');
+        const primaryIdx = firstImageIdx >= 0 ? firstImageIdx : 0;
         parsed.mediaUrls.forEach((m, idx) => {
           insImg.run(
             id,
             cleanText(m.url, 300),
             cleanOptionalText(m.caption, 160),
             m.mediaType,
-            idx === 0 ? 1 : 0,
+            idx === primaryIdx ? 1 : 0,
             idx
           );
         });

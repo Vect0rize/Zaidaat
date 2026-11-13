@@ -74,9 +74,18 @@ export function CompareBar() {
                   <th key={p.id} className="min-w-[190px] px-3 py-3 align-top">
                     <div className="space-y-2">
                       <img
-                        src={p.images[0]?.url && !p.images[0].url.endsWith('.svg') ? p.images[0].url : '/uploads/seed/prop-pune-apt.jpg'}
+                        src={
+                          p.images.find((im) => im.isPrimary && im.mediaType === 'image')?.url ||
+                          p.images.find((im) => im.mediaType === 'image')?.url ||
+                          p.images[0]?.url ||
+                          '/uploads/seed/prop-pune-apt.jpg'
+                        }
                         alt={p.title}
-                        className="h-24 w-full rounded-lg object-cover border border-slate-200"
+                        className="h-24 w-full rounded-lg border border-slate-200 object-cover"
+                        onError={(e) => {
+                          e.currentTarget.onerror = null;
+                          e.currentTarget.src = '/uploads/seed/prop-pune-apt.jpg';
+                        }}
                       />
                       <Link
                         to={`/properties/${p.id}`}

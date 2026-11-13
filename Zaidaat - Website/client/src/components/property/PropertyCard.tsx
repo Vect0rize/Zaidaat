@@ -18,7 +18,11 @@ export function PropertyCard({ property, onToggleSave }: PropertyCardProps) {
   const toast = useToast();
   const navigate = useNavigate();
 
-  const rawUrl = property.images[0]?.url;
+  const primaryMedia =
+    property.images.find((im) => im.isPrimary && im.mediaType === 'image') ||
+    property.images.find((im) => im.mediaType === 'image') ||
+    property.images[0];
+  const rawUrl = primaryMedia?.url;
   const primaryImg = rawUrl && !rawUrl.endsWith('.svg') ? rawUrl : '/uploads/seed/prop-pune-apt.jpg';
   const comparing = isInCompare(property.id);
 
@@ -64,6 +68,10 @@ export function PropertyCard({ property, onToggleSave }: PropertyCardProps) {
             alt={property.title}
             className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]"
             loading="lazy"
+            onError={(e) => {
+              e.currentTarget.onerror = null;
+              e.currentTarget.src = '/uploads/seed/prop-pune-apt.jpg';
+            }}
           />
         </Link>
 
@@ -101,7 +109,7 @@ export function PropertyCard({ property, onToggleSave }: PropertyCardProps) {
         <div className="flex items-center justify-between gap-2 text-[11px] font-medium text-slate-500">
           <span>
             <span className="font-semibold text-navy-900">
-              {property.listingPurpose === 'buy' ? 'For Sale' : 'For Rent'}
+              {property.listingPurpose === 'buy' ? 'Sell' : 'Rent'}
             </span>
             {' · '}
             {formatLabel(property.propertyType)}

@@ -485,9 +485,18 @@ export function DashboardPage() {
                         <div key={p.id} className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-slate-200 p-4">
                           <div className="flex items-center gap-3.5">
                             <img
-                              src={p.images[0]?.url || '/uploads/seed/prop-pune-apt.jpg'}
+                              src={
+                                p.images.find((im) => im.isPrimary && im.mediaType === 'image')?.url ||
+                                p.images.find((im) => im.mediaType === 'image')?.url ||
+                                p.images[0]?.url ||
+                                '/uploads/seed/prop-pune-apt.jpg'
+                              }
                               alt={p.title}
-                              className="h-16 w-24 rounded-lg object-cover border border-slate-200"
+                              className="h-16 w-24 rounded-lg border border-slate-200 object-cover"
+                              onError={(e) => {
+                                e.currentTarget.onerror = null;
+                                e.currentTarget.src = '/uploads/seed/prop-pune-apt.jpg';
+                              }}
                             />
                             <div>
                               <Link to={`/properties/${p.id}`} className="font-bold text-slate-900 hover:text-brand-600">

@@ -372,8 +372,8 @@ export function SellPropertyPage() {
                 onChange={(e) => setListingPurpose(e.target.value as 'buy' | 'rent')}
                 className="input-field"
               >
-                <option value="buy">Sell (For Purchase)</option>
-                <option value="rent">Rent / Lease (Monthly)</option>
+                <option value="buy">Sell</option>
+                <option value="rent">Rent</option>
               </select>
             </div>
             <div>
@@ -523,6 +523,19 @@ export function SellPropertyPage() {
                 </p>
               )}
             </div>
+            {Number(price) > 0 && Number(areaSqft) > 0 && (
+              <div className="flex flex-wrap items-center gap-2 rounded-xl border border-brand-200 bg-brand-50/80 px-3.5 py-2 text-xs font-semibold text-brand-900 shadow-sm sm:col-span-2">
+                <span className="text-slate-600">Auto-Calculated Rate:</span>
+                <span className="font-bold text-brand-700">
+                  ₹ {Math.round(Number(price) / Number(areaSqft)).toLocaleString('en-IN')} / {AREA_UNITS[areaUnit].label}
+                </span>
+                {areaUnit !== 'sqft' && computedAreaSqft > 0 && (
+                  <span className="text-slate-500">
+                    (&asymp; ₹ {Math.round(Number(price) / computedAreaSqft).toLocaleString('en-IN')} / sq.ft)
+                  </span>
+                )}
+              </div>
+            )}
             {listingPurpose === 'rent' && (
               <>
                 <div>
@@ -550,43 +563,56 @@ export function SellPropertyPage() {
           </div>
 
           {!isPlotOrLand && (
-            <div className="grid gap-4 sm:grid-cols-4">
+            <div className="space-y-4">
+              {/* Bedroom, Bathroom, Balcony as small rectangles in 1 line on mobile & desktop */}
               <div>
-                <label className="mb-1 block text-xs font-semibold text-slate-600">Bedrooms (BHK)</label>
-                <input
-                  type="number"
-                  min={0}
-                  max={25}
-                  value={bedrooms}
-                  onChange={(e) => setBedrooms(e.target.value)}
-                  placeholder="e.g. 2"
-                  className="input-field"
-                />
+                <label className="mb-1.5 block text-xs font-semibold text-slate-700">Room Specifications</label>
+                <div className="grid grid-cols-3 gap-2 sm:gap-4">
+                  <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-2 text-center sm:p-3">
+                    <label className="mb-1 block text-center text-[11px] font-semibold text-slate-600 sm:text-xs">
+                      Bedrooms
+                    </label>
+                    <input
+                      type="number"
+                      min={0}
+                      max={25}
+                      value={bedrooms}
+                      onChange={(e) => setBedrooms(e.target.value)}
+                      placeholder="BHK"
+                      className="input-field text-center font-bold"
+                    />
+                  </div>
+                  <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-2 text-center sm:p-3">
+                    <label className="mb-1 block text-center text-[11px] font-semibold text-slate-600 sm:text-xs">
+                      Bathrooms
+                    </label>
+                    <input
+                      type="number"
+                      min={0}
+                      max={25}
+                      value={bathrooms}
+                      onChange={(e) => setBathrooms(e.target.value)}
+                      placeholder="Baths"
+                      className="input-field text-center font-bold"
+                    />
+                  </div>
+                  <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-2 text-center sm:p-3">
+                    <label className="mb-1 block text-center text-[11px] font-semibold text-slate-600 sm:text-xs">
+                      Balconies
+                    </label>
+                    <input
+                      type="number"
+                      min={0}
+                      max={20}
+                      value={balconies}
+                      onChange={(e) => setBalconies(e.target.value)}
+                      placeholder="Balcony"
+                      className="input-field text-center font-bold"
+                    />
+                  </div>
+                </div>
               </div>
-              <div>
-                <label className="mb-1 block text-xs font-semibold text-slate-600">Bathrooms</label>
-                <input
-                  type="number"
-                  min={0}
-                  max={25}
-                  value={bathrooms}
-                  onChange={(e) => setBathrooms(e.target.value)}
-                  placeholder="e.g. 2"
-                  className="input-field"
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-semibold text-slate-600">Balconies</label>
-                <input
-                  type="number"
-                  min={0}
-                  max={20}
-                  value={balconies}
-                  onChange={(e) => setBalconies(e.target.value)}
-                  placeholder="e.g. 1"
-                  className="input-field"
-                />
-              </div>
+
               <div>
                 <label className="mb-1 block text-xs font-semibold text-slate-600">Furnishing</label>
                 <select value={furnishing} onChange={(e) => setFurnishing(e.target.value as any)} className="input-field">
@@ -599,23 +625,27 @@ export function SellPropertyPage() {
             </div>
           )}
 
-          <div className={`grid gap-4 ${isPlotOrLand ? 'sm:grid-cols-2' : 'sm:grid-cols-4'}`}>
+          <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <label className="mb-1 block text-xs font-semibold text-slate-600">Facing</label>
-              <input type="text" value={facing} onChange={(e) => setFacing(e.target.value)} placeholder="e.g. East / North-East" className="input-field" />
+              <select
+                value={facing}
+                onChange={(e) => setFacing(e.target.value)}
+                className="input-field"
+                aria-label="Facing Direction"
+              >
+                <option value="">Select Facing Direction</option>
+                <option value="North">North</option>
+                <option value="North-East">North-East</option>
+                <option value="East">East</option>
+                <option value="South-East">South-East</option>
+                <option value="South">South</option>
+                <option value="South-West">South-West</option>
+                <option value="West">West</option>
+                <option value="North-West">North-West</option>
+              </select>
             </div>
-            {!isPlotOrLand && (
-              <>
-                <div>
-                  <label className="mb-1 block text-xs font-semibold text-slate-600">Floor No.</label>
-                  <input type="number" min={0} value={floorNumber} onChange={(e) => setFloorNumber(e.target.value)} placeholder="e.g. 4" className="input-field" />
-                </div>
-                <div>
-                  <label className="mb-1 block text-xs font-semibold text-slate-600">Total Floors</label>
-                  <input type="number" min={0} value={totalFloors} onChange={(e) => setTotalFloors(e.target.value)} placeholder="e.g. 12" className="input-field" />
-                </div>
-              </>
-            )}
+
             <div>
               <label className="mb-1 block text-xs font-semibold text-slate-600">Possession</label>
               <select value={possessionStatus} onChange={(e) => setPossessionStatus(e.target.value as any)} className="input-field">
@@ -624,6 +654,36 @@ export function SellPropertyPage() {
                 <option value="under_construction">{isPlotOrLand ? 'Under Development' : 'Under Construction'}</option>
               </select>
             </div>
+
+            {!isPlotOrLand && (
+              <div className="sm:col-span-2">
+                {/* Floor No & Total Floors strictly in 1 line on both mobile and desktop */}
+                <div className="grid grid-cols-2 gap-2 sm:gap-4">
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold text-slate-600">Floor No.</label>
+                    <input
+                      type="number"
+                      min={0}
+                      value={floorNumber}
+                      onChange={(e) => setFloorNumber(e.target.value)}
+                      placeholder="e.g. 4"
+                      className="input-field text-center font-medium"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold text-slate-600">Total Floors</label>
+                    <input
+                      type="number"
+                      min={0}
+                      value={totalFloors}
+                      onChange={(e) => setTotalFloors(e.target.value)}
+                      placeholder="e.g. 12"
+                      className="input-field text-center font-medium"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           <div>

@@ -175,7 +175,10 @@ export function PropertyDetailPage() {
   }
 
   const isOwner = Boolean(user && (user.id === property.ownerId || user.roles.includes('admin')));
-  const activeMedia = property.images[activeMediaIdx] || {
+  const primaryImgIdx = property.images.findIndex((im) => im.isPrimary) >= 0
+    ? property.images.findIndex((im) => im.isPrimary)
+    : 0;
+  const activeMedia = property.images[activeMediaIdx] || property.images[primaryImgIdx] || {
     url: '/uploads/seed/prop-pune-apt.jpg',
     mediaType: 'image',
   };
@@ -256,11 +259,15 @@ export function PropertyDetailPage() {
                   src={activeMedia.url}
                   alt={property.title}
                   className="h-full w-full object-cover"
+                  onError={(e) => {
+                    e.currentTarget.onerror = null;
+                    e.currentTarget.src = '/uploads/seed/prop-pune-apt.jpg';
+                  }}
                 />
               )}
               <div className="absolute left-4 top-4 flex items-center gap-2">
                 <span className="rounded-md bg-navy-900/90 px-2.5 py-1 text-xs font-bold uppercase tracking-wide text-white">
-                  For {property.listingPurpose === 'buy' ? 'Sale' : 'Rent'}
+                  {property.listingPurpose === 'buy' ? 'Sell' : 'Rent'}
                 </span>
                 <span className="rounded-md bg-white/95 px-2.5 py-1 text-xs font-semibold text-slate-900">
                   {formatLabel(property.propertyCategory)} &middot; {formatLabel(property.propertyType)}
@@ -278,7 +285,7 @@ export function PropertyDetailPage() {
               <div className="flex gap-2 overflow-x-auto border-t border-slate-100 bg-slate-50 p-3">
                 {property.images.map((m, idx) => (
                   <button
-                    key={m.id}
+                    key={m.id || `${m.url}-${idx}`}
                     type="button"
                     onClick={() => setActiveMediaIdx(idx)}
                     aria-label={`View media ${idx + 1} for ${property.title}`}
@@ -291,7 +298,15 @@ export function PropertyDetailPage() {
                         Video
                       </div>
                     ) : (
-                      <img src={m.url} alt={`${property.title} photo ${idx + 1}`} className="h-full w-full object-cover" />
+                      <img
+                        src={m.url}
+                        alt={`${property.title} photo ${idx + 1}`}
+                        className="h-full w-full object-cover"
+                        onError={(e) => {
+                          e.currentTarget.onerror = null;
+                          e.currentTarget.src = '/uploads/seed/prop-pune-apt.jpg';
+                        }}
+                      />
                     )}
                   </button>
                 ))}

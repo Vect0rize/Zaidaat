@@ -8,8 +8,9 @@ locationsRouter.get('/states', (_req, res) => {
   const db = getDb();
   const rows = db
     .prepare(
-      `SELECT DISTINCT state, region_zone
+      `SELECT state, MIN(region_zone) as region_zone
        FROM india_locations
+       GROUP BY state
        ORDER BY state ASC`
     )
     .all() as Array<{ state: string; region_zone: string }>;
