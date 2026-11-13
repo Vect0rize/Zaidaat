@@ -173,6 +173,12 @@ export function createApp() {
     );
   });
 
+  // Serve static client public assets (favicons, manifest, etc.)
+  const clientPublicDir = path.resolve(process.cwd(), 'client', 'public');
+  if (fs.existsSync(clientPublicDir)) {
+    app.use(express.static(clientPublicDir));
+  }
+
   app.get('/sitemap.xml', (req, res) => {
     const baseUrl = (config.google.hasExplicitAppUrl ? config.appUrl : `${req.protocol}://${req.get('host') || 'localhost:3000'}`).replace(/\/+$/, '');
     const escapeXml = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
